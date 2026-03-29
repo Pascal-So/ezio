@@ -1,7 +1,7 @@
 from pydantic_geojson import FeatureCollectionModel
 from pytest import fixture
 
-from ezio.domain.geo import latitude_to_mercator_y, linestring_length_km
+from ezio.domain.geo import latitude_to_mercator_y, track_length_km
 
 
 @fixture
@@ -19,7 +19,7 @@ def test_linestring_length(balkan_featurecollection: FeatureCollectionModel) -> 
         if feature.geometry is None:
             continue
         if feature.geometry.type == "LineString":
-            total_length += linestring_length_km(feature.geometry)
+            total_length += track_length_km(feature.geometry)
 
     # check if the difference to the value computed in QGIS is below 1%
     assert abs(length_from_qgis - total_length) / length_from_qgis < 0.01

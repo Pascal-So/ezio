@@ -10,6 +10,18 @@ example output.
 
 TODO
 
+## Limitations
+
+This program currently assumes that the following constraints hold. The output
+is undefined if the data does not follow these constraints.
+
+* The route must not cross the ±180° longitude line.
+* The route must not cross a timezone boundary.
+* A single route recording does not extend across midnight in the active timezone.
+* Every day with a route recording must have at least one photo taken on that day.
+
+Some of these constraints might be relaxed in the future if the need arises.
+
 ## License
 
 AGPL-3.0-or-later

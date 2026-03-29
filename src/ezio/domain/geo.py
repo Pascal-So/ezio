@@ -5,6 +5,9 @@ from typing import Literal
 
 
 from pydantic_geojson import LineStringModel
+from pydantic_geojson._base import Coordinates
+
+from ezio.domain.model import Tilecoord
 
 
 def latitude_to_mercator_y(lat: float) -> float:
@@ -49,13 +52,63 @@ def _clamp(val: int, lower: int, upper: int) -> int:
     return min(max(val, lower), upper)
 
 
+def bounding_box(tracks: list[LineStringModel]) -> tuple[Coordinates, Coordinates]:
+    bbox: tuple[Coordinates, Coordinates] | None = None
+
+    for coord in [coord for track in tracks for coord in track.coordinates]:
+        if bbox is None:
+            bbox = (coord, coord)
+        else:
+            min_coord = Coordinates(
+                lon=min(bbox[0].lon, coord.lon), lat=min(bbox[0].lat, coord.lat)
+            )
+            max_coord = Coordinates(
+                lon=max(bbox[1].lon, coord.lon), lat=max(bbox[1].lat, coord.lat)
+            )
+
+            bbox = (min_coord, max_coord)
+
+    if bbox is None:
+        raise Exception("Dataset doesn't contain any coordinates!")
+
+    return bbox
+
+
+def compute_required_map_tiles(
+    bbox: tuple[Coordinates, Coordinates],
+) -> list[Tilecoord]:
+    """
+    The set of map tiles that we need to cover the area, across multiple zoom levels
+    """
+
+    min_zoom_level = 4
+    max_zoom_level = 9
+    padding = 1.5
+
+    tiles: list[Tilecoord] = []
+
+    for zoom_level in range(min_zoom_level, max_zoom_level + 1):
+        x_range = degree_range_to_index_range(
+            (bbox[0].lon, bbox[1].lon), zoom_level, padding, "lng"
+        )
+        y_range = degree_range_to_index_range(
+            (bbox[0].lat, bbox[1].lat), zoom_level, padding, "lat"
+        )
+
+        for x in range(*x_range):
+            for y in range(*y_range):
+                tiles.append(Tilecoord(x, y, zoom=zoom_level))
+
+    return tiles
+
+
 def nr_coords_on_zoom_level(level: int) -> int:
     # The math.floor is required because of
     # https://github.com/python/mypy/issues/7765#issuecomment-544645704
     return math.floor(2 ** float(level))
 
 
-def linestring_length_km(linestring: LineStringModel) -> float:
+def track_length_km(linestring: LineStringModel) -> float:
     """Calculates the total length of a LineString in kilometers."""
 
     coords = linestring.coordinates
@@ -88,14 +141,14 @@ def earth_surface_distance_km(
     return 6378.137 * (2 * math.atan2(math.sqrt(temp), math.sqrt(1 - temp)))
 
 
-def climb(linestring: LineStringModel) -> float | None:
+def climb(track: LineStringModel) -> float | None:
     """
     Calculate the ascent that was climbed during the route, in metres.
     """
 
     elevations: list[float] = []
 
-    for coord in linestring.coordinates:
+    for coord in track.coordinates:
         if coord.alt is None:
             # If any of the points does not have elevation set then we skip the
             # entire climb calculation

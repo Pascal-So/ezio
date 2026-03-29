@@ -1,31 +1,43 @@
+import argparse
+from dataclasses import dataclass
 from pathlib import Path
 
+from ezio.adapters.gpx import GpxTrackSource
 from ezio.adapters.jawg import Jawg
-from ezio.domain.geo import degree_range_to_index_range
-from ezio.domain.types import Tilecoord
+from ezio.domain.model import OutputDirectory
+from ezio.domain.wizard import run_wizard
 from ezio.ports.tilesource import Tilesource
+from ezio.ports.tracksource import Tracksource
 
 
 def main() -> None:
-    tilesource: Tilesource = Jawg()
+    args = _parse_args()
 
-    lat_range = (46.5, 47.7)
-    lng_range = (7.1, 8.66)
-    zoom_range = (0, 13)
+    tile_source: Tilesource = Jawg()
+    track_source: Tracksource = GpxTrackSource()
 
-    for zoom in range(*zoom_range):
-        x_range = degree_range_to_index_range(lng_range, zoom, 1.5, "lng")
-        y_range = degree_range_to_index_range(lat_range, zoom, 1.5, "lat")
+    run_wizard(args.output_directory, track_source, tile_source, args.input_dir)
 
-        print(f"zoom = {zoom}, x_range = {x_range}, y_range = {y_range}")
 
-        for x in range(*x_range):
-            for y in range(*y_range):
-                file_path = Path(f"public/img/tiles/{zoom}-{x}-{y}.png")
+@dataclass
+class Args:
+    input_dir: Path
+    output_directory: OutputDirectory
 
-                if not file_path.exists():
-                    print(f"getting {zoom} {x} {y}")
 
-                    tile = tilesource.get_tile(Tilecoord(x=x, y=y, zoom=zoom))
-                    with open(file_path, "wb") as f:
-                        _ = f.write(tile)
+def _parse_args() -> Args:
+    parser = argparse.ArgumentParser(
+        prog="Ezio", description="Display a recorded route as a static website"
+    )
+
+    _ = parser.add_argument("-i", "--input", required=True, type=str)
+    _ = parser.add_argument("-o", "--output", required=True, type=str)
+
+    args = parser.parse_args()
+
+    if not isinstance(args.input, str) or not isinstance(args.output, str):
+        raise TypeError()
+
+    return Args(
+        input_dir=Path(args.input), output_directory=OutputDirectory(args.output)
+    )

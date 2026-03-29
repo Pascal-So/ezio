@@ -4,7 +4,7 @@ from typing import override
 
 import requests
 
-from ezio.domain.types import Tile, Tilecoord
+from ezio.domain.model import Tile, Tilecoord
 from ezio.ports.tilesource import Tilesource
 
 

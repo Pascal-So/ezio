@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ezio.domain.types import Tile, Tilecoord
+from ezio.domain.model import Tile, Tilecoord
 
 
 class Tilesource(ABC):
