@@ -34,6 +34,7 @@ class PhotoInfo(BaseModel):
 
 class SegmentInfo(BaseModel):
     date: dt.date
+    description: str
     dist_km: float
     climb_m: float | None
     featured_photo: str | None

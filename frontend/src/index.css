@@ -1,0 +1,70 @@
+body {
+  padding: 0;
+  margin: 0;
+
+  --yarl__thumbnails_container_padding: 6px;
+}
+
+html,
+body,
+#root,
+#root > div,
+.leaflet-container {
+  height: 100%;
+  width: 100vw;
+  background: rgb(25, 26, 26);
+}
+
+#popup-container {
+  display: none;
+}
+
+.info-overlay {
+  min-width: 250px;
+}
+
+.info-overlay-thumbnail {
+  height: 160px;
+}
+
+.pointer {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pane-foreground {
+  z-index: 510;
+}
+
+.pane-middle {
+  z-index: 505;
+}
+
+.pane-background {
+  z-index: 500;
+}
+
+@media (max-height: 700px) {
+  .info-overlay-thumbnail {
+    height: 120px;
+  }
+}
+
+@media (max-width: 700px) {
+  .info-overlay {
+    min-width: 150px;
+  }
+}
+
+/* 
+.trackLine {
+    mix-blend-mode: screen;
+}
+
+#toolbar-root {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 500;
+} */

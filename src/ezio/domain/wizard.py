@@ -64,7 +64,11 @@ def run_wizard(
 
         data.segments.append(
             SegmentInfo(
-                date=date, dist_km=distance_km, climb_m=climb_m, featured_photo=""
+                date=date,
+                description="",
+                dist_km=distance_km,
+                climb_m=climb_m,
+                featured_photo="",
             )
         )
 
