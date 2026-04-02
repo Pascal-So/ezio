@@ -22,13 +22,14 @@ import CardMedia from "@mui/material/CardMedia";
 import L from "leaflet";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import Typography from "@mui/material/Typography";
-import Lightbox from "yet-another-react-lightbox";
+import Lightbox, { type SlideImage } from "yet-another-react-lightbox";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "./App.css";
 
-import type { Segment, SlideWithDate } from "./types";
+import type { PhotoInfo, Segment } from "./types";
+import { photoPath, thumbnailPath } from "./data-fetching";
 
 function tileToLatLng(x: number, y: number, zoom: number): LatLng {
   const n = Math.pow(2, zoom);
@@ -55,8 +56,36 @@ type InfoOverlayProps = {
   moveLeft: () => void;
   moveRight: () => void;
   selectSegmentByDate: (date: string) => void;
-  photos: SlideWithDate[];
+  photos: PhotoInfo[];
 };
+
+export type SlideWithDate = SlideImage & { date: string };
+
+function photosToSlides(photos: PhotoInfo[]): SlideWithDate[] {
+  return photos.map((photo) => {
+    const largePath = photoPath(photo.filename);
+    const thumbPath = thumbnailPath(photo.filename);
+
+    return {
+      src: largePath,
+      width: photo.resolution.x,
+      height: photo.resolution.y,
+      srcSet: [
+        {
+          src: largePath,
+          width: photo.resolution.x,
+          height: photo.resolution.y,
+        },
+        {
+          src: thumbPath,
+          width: photo.thumbnailResolution.x,
+          height: photo.thumbnailResolution.y,
+        },
+      ],
+      date: photo.date,
+    };
+  });
+}
 
 const InfoOverlay: FC<InfoOverlayProps> = ({
   photos,
@@ -65,9 +94,11 @@ const InfoOverlay: FC<InfoOverlayProps> = ({
   moveRight,
   selectSegmentByDate,
 }) => {
-  const thumbPath = `img/photos/thumb/${segment.featured_photo}`;
+  const thumbPath = thumbnailPath(segment.featuredPhotoFilename);
 
   const [imageIndex, setImageIndex] = useState<null | number>(null);
+
+  const slides = photosToSlides(photos);
 
   return (
     <Card
@@ -83,7 +114,7 @@ const InfoOverlay: FC<InfoOverlayProps> = ({
       />
 
       <Lightbox
-        slides={photos}
+        slides={slides}
         open={imageIndex !== null}
         index={imageIndex ?? undefined}
         close={() => setImageIndex(null)}
@@ -122,13 +153,12 @@ const InfoOverlay: FC<InfoOverlayProps> = ({
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          {segment.desc}
+          {segment.description}
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>
           <span title="Distance">
-            <StraightenIcon sx={{ verticalAlign: "middle" }} />{" "}
-            {segment.dist_km}km
+            <StraightenIcon sx={{ verticalAlign: "middle" }} /> {segment.dist.toFixed(2)}km
           </span>
         </Typography>
       </CardContent>
@@ -138,7 +168,7 @@ const InfoOverlay: FC<InfoOverlayProps> = ({
 
 type AppProps = {
   segments: Segment[];
-  photos: SlideWithDate[];
+  photos: PhotoInfo[];
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
 };

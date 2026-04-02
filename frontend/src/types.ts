@@ -1,29 +1,41 @@
-import type { FeatureCollection, MultiLineString } from "geojson";
-import type { SlideImage } from "yet-another-react-lightbox";
+import type { FeatureCollection, MultiLineString, Point } from "geojson";
 
-type JsonSegment = {
-  date: string;
-  dist_km: number;
-  desc: string;
-  featured_photo: string;
-};
+export type SegmentGeometry = FeatureCollection<MultiLineString>;
+export type PointsGeometry = FeatureCollection<Point>;
 
-export type Segment = JsonSegment & {
+export type Segment = SegmentInfo & {
   imageIndex: number;
-  geometry: FeatureCollection<MultiLineString>;
+  geometry: SegmentGeometry;
 };
 
-export type SlideWithDate = SlideImage & { date: string };
+export type SegmentInfo = {
+  date: string;
+  description: string;
 
-export type NetworkData = {
-  segments: JsonSegment[];
-  photos: {
-    date: string;
-    n: string;
-    w: number;
-    h: number;
-    tw: number;
-    th: number;
-  }[];
-  backgroundSegments: string[];
+  /** Length of the segment in kilometres*/
+  dist: number;
+
+  /** Climb in metres*/
+  climb: number | undefined;
+
+  featuredPhotoFilename: string;
 };
+
+export type Resolution = {
+  x: number;
+  y: number;
+};
+
+export type PhotoInfo = {
+  filename: string;
+  date: string;
+  resolution: Resolution;
+  thumbnailResolution: Resolution;
+};
+
+export type Data = {
+  segments: Segment[];
+  photos: PhotoInfo[];
+  backgroundSegments: SegmentGeometry[];
+  stays: PointsGeometry | null;
+}

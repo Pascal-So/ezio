@@ -19,6 +19,8 @@ is undefined if the data does not follow these constraints.
 * Every day with a route recording must have at least one photo taken on that day.
 * The combined route must not cross the ±180° longitude line.
 * The combined route must not cross a timezone boundary.
+* The viewer currently highlights route segments by day. No other grouping type
+  (weeks / custom / etc.) is currently possible.
 
 Some of these constraints might be relaxed in the future if the need arises.
 
