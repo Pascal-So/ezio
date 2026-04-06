@@ -17,14 +17,10 @@ import {
   Pane,
 } from "react-leaflet";
 import L from "leaflet";
-import Lightbox, { type SlideImage } from "yet-another-react-lightbox";
-import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
-import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
-import Zoom from "yet-another-react-lightbox/plugins/zoom";
 
 import type { PhotoInfo, Segment } from "./types";
-import { photoPath, thumbnailPath } from "./data-fetching";
 import InfoOverlay from "./components/info-overlay";
+import PhotoGallery from "./components/photo-gallery";
 
 function tileToLatLng(x: number, y: number, zoom: number): LatLng {
   const n = Math.pow(2, zoom);
@@ -44,34 +40,6 @@ function getBounds(): LatLngBounds {
   const corner1 = tileToLatLng(minX, minY, zoom);
   const corner2 = tileToLatLng(maxX + 1, maxY + 1, zoom);
   return latLngBounds(corner1, corner2);
-}
-
-export type SlideWithDate = SlideImage & { date: string };
-
-function photosToSlides(photos: PhotoInfo[]): SlideWithDate[] {
-  return photos.map((photo) => {
-    const largePath = photoPath(photo.filename);
-    const thumbPath = thumbnailPath(photo.filename);
-
-    return {
-      src: largePath,
-      width: photo.resolution.x,
-      height: photo.resolution.y,
-      srcSet: [
-        {
-          src: largePath,
-          width: photo.resolution.x,
-          height: photo.resolution.y,
-        },
-        {
-          src: thumbPath,
-          width: photo.thumbnailResolution.x,
-          height: photo.thumbnailResolution.y,
-        },
-      ],
-      date: photo.date,
-    };
-  });
 }
 
 type AppProps = {
@@ -235,8 +203,6 @@ const App: FC<AppProps> = ({
     }
   }
 
-  const slides = photosToSlides(photos);
-
   return (
     <div onKeyDown={keyDown}>
       {selectedSegment !== null ? (
@@ -250,35 +216,14 @@ const App: FC<AppProps> = ({
         />
       ) : null}
 
-      <Lightbox
-        slides={slides}
-        open={imageIndex !== null}
-        index={imageIndex ?? undefined}
-        close={() => setImageIndex(null)}
-        animation={{
-          swipe: 200,
-        }}
-        on={{
-          view({ index }) {
-            selectSegmentByDate(photos[index].date);
-          },
-        }}
-        carousel={{
-          preload: 4,
-          padding: "6px",
-        }}
-        plugins={[Fullscreen, Thumbnails, Zoom]}
-        thumbnails={{
-          position: "start",
-          border: 0,
-          gap: 3,
-          width: 70,
-          height: (160 * 70) / 250,
-          padding: 0,
-        }}
-      ></Lightbox>
-
       <div id="popup-container" />
+
+      <PhotoGallery
+        photos={photos}
+        imageIndex={imageIndex}
+        setImageIndex={setImageIndex}
+        selectSegmentByDate={selectSegmentByDate}
+      />
 
       <MapContainer
         center={[47, 8]}
