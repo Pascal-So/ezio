@@ -1,13 +1,12 @@
 import type { FeatureCollection, MultiLineString, Point } from "geojson";
 import L, { LatLng, latLng, LatLngBounds, latLngBounds } from "leaflet";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { useEffect } from "react";
 import {
   TileLayer,
   MapContainer,
   GeoJSON,
-  Popup,
   useMap,
-  Pane,
+  LayerGroup,
 } from "react-leaflet";
 
 import type { Segment, SegmentGeometry } from "../types";
@@ -43,7 +42,6 @@ type MapViewProps = {
 function MapView(props: MapViewProps) {
   return (
     <>
-      <div id="popup-container" />
       <MapContainer
         center={[42.5, 26.2]}
         zoom={8}
@@ -65,91 +63,70 @@ function MapContents({
   stays,
 }: MapViewProps) {
   const map = useMap();
-  const canvasRenderer = useMemo(
-    () => L.canvas({ padding: 0.5, tolerance: 15 }),
-    [],
-  );
 
   useEffect(() => {
-    map.createPane("fixedpane", document.getElementById("popup-container")!);
+    // deselect segments when clicking on the background
+    map.on("click", () => setSelectedSegment(null));
   }, [map]);
-
-  const ref = useRef<L.GeoJSON>(null);
-
-  useEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-    // Select the first segment when we first open the map
-    ref.current.openPopup();
-  }, [ref]);
 
   return (
     <>
-      <TileLayer
-        attribution='Map Tiles: <a href="https://www.jawg.io/en/">jawgmaps</a>, Map Data: <a href="https://osm.org/copyright/">© OpenStreetMap contributors</a>'
-        url="img/tiles/{z}-{x}-{y}.png"
-      />
+      <LayerGroup
+        eventHandlers={{
+          click: () => {
+            console.log("bgclick");
+            setSelectedSegment(null);
+          },
+        }}
+      >
+        <TileLayer
+          attribution='Map Tiles: <a href="https://www.jawg.io/en/">jawgmaps</a>, Map Data: <a href="https://osm.org/copyright/">© OpenStreetMap contributors</a>'
+          url="img/tiles/{z}-{x}-{y}.png"
+        />
+      </LayerGroup>
+
+      {backgroundSegments.map((segment, index) => (
+        <BackgroundSegment key={index} segment={segment} index={index} />
+      ))}
+
+      {stays !== null && (
+        <GeoJSON
+          interactive={false}
+          data={stays}
+          pointToLayer={(_geoJsonPoint, latlng) => {
+            return L.marker(latlng, {
+              icon: L.icon({
+                iconUrl: "img/star.png",
+                iconSize: [26, 26],
+              }),
+              interactive: false,
+            });
+          }}
+        />
+      )}
 
       {segments.map(
         // first render all of the unselected segments
         (segment, index) =>
-          selectedSegment !== index  && (
+          selectedSegment !== index && (
             <Segment
               key={index}
               segment={segment.geometry}
-              ref={index === 0 ? ref : undefined}
               index={index}
               isSelected={false}
               select={() => setSelectedSegment(index)}
-              deselect={() => setSelectedSegment(null)}
-              renderer={canvasRenderer}
             />
           ),
       )}
 
       {selectedSegment !== null && (
+        // then render the selected segment in front of the others
         <Segment
           segment={segments[selectedSegment].geometry}
-          ref={selectedSegment === 0 ? ref : undefined}
           index={selectedSegment}
           isSelected={true}
-          select={() => setSelectedSegment(selectedSegment)}
-          deselect={() => setSelectedSegment(null)}
-          renderer={canvasRenderer}
+          select={() => {}}
         />
-      )}
-
-      {false && (
-        <Pane name={"background-stuff"} className={"pane-background"}>
-          {backgroundSegments.map((segment) => (
-            <GeoJSON
-              interactive={false}
-              data={segment}
-              style={{
-                color: "#bbb",
-                opacity: 0.7,
-                weight: 2,
-              }}
-            ></GeoJSON>
-          ))}
-
-          {stays !== null && (
-            <GeoJSON
-              interactive={false}
-              data={stays}
-              pointToLayer={(_geoJsonPoint, latlng) => {
-                return L.marker(latlng, {
-                  icon: L.icon({
-                    iconUrl: "img/star.png",
-                    iconSize: [26, 26],
-                  }),
-                  interactive: false,
-                });
-              }}
-            />
-          )}
-        </Pane>
       )}
     </>
   );
@@ -157,42 +134,63 @@ function MapContents({
 
 type SegmentProps = {
   segment: SegmentGeometry;
-  ref: RefObject<L.GeoJSON | null> | undefined;
   index: number;
   isSelected: boolean;
   select: () => void;
-  deselect: () => void;
-  renderer: L.Renderer;
 };
 
-function Segment({
-  segment,
-  ref,
-  index,
-  isSelected,
-  select,
-  deselect,
-  renderer,
-}: SegmentProps) {
+function Segment({ segment, index, isSelected, select }: SegmentProps) {
+  return (
+    <>
+      <GeoJSON
+        key={index}
+        data={segment}
+        interactive={false}
+        style={{
+          color: isSelected ? "#fd7536" : "#3388ff",
+          opacity: 0.7,
+          weight: isSelected ? 6 : 4,
+        }}
+      ></GeoJSON>
+
+      {/* Invisible clickable segment with larger line weight. We use
+       *  this to make it easier to click the thin lines.
+       */}
+      <GeoJSON
+        key={index + 10000}
+        data={segment}
+        eventHandlers={{
+          click: (ev) => {
+            L.DomEvent.stopPropagation(ev);
+            select();
+          },
+        }}
+        style={{
+          opacity: 0.0,
+          weight: 21,
+        }}
+      ></GeoJSON>
+    </>
+  );
+}
+
+type BackgroundSegmentProps = {
+  segment: SegmentGeometry;
+  index: number;
+};
+
+function BackgroundSegment({ segment, index }: BackgroundSegmentProps) {
   return (
     <GeoJSON
       key={index}
-      pathOptions={{ renderer: renderer }}
+      interactive={false}
       data={segment}
-      ref={ref}
-      eventHandlers={{
-        popupopen: select,
-        popupclose: deselect,
-      }}
       style={{
-        color: isSelected ? "#fd7536" : "#3388ff",
+        color: "#bbb",
         opacity: 0.7,
-        weight: isSelected ? 7 : 4,
+        weight: 2,
       }}
-    >
-      <Popup pane="fixedpane" className="fixup">
-      </Popup>
-   </GeoJSON>
+    ></GeoJSON>
   );
 }
 

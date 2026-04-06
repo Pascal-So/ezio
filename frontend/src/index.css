@@ -16,25 +16,3 @@ body,
   width: 100vw;
   background: rgb(25, 26, 26);
 }
-
-#popup-container {
-  display: none;
-}
-
-.pane-foreground {
-  z-index: 510;
-}
-
-.pane-middle {
-  z-index: 505;
-}
-
-.pane-background {
-  z-index: 500;
-}
-
-/* 
-.trackLine {
-    mix-blend-mode: screen;
-}
-*/
