@@ -16,20 +16,15 @@ import {
   useMap,
   Pane,
 } from "react-leaflet";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardMedia from "@mui/material/CardMedia";
 import L from "leaflet";
-import StraightenIcon from "@mui/icons-material/Straighten";
-import Typography from "@mui/material/Typography";
 import Lightbox, { type SlideImage } from "yet-another-react-lightbox";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-import "./App.css";
 
 import type { PhotoInfo, Segment } from "./types";
 import { photoPath, thumbnailPath } from "./data-fetching";
+import InfoOverlay from "./components/info-overlay";
 
 function tileToLatLng(x: number, y: number, zoom: number): LatLng {
   const n = Math.pow(2, zoom);
@@ -50,14 +45,6 @@ function getBounds(): LatLngBounds {
   const corner2 = tileToLatLng(maxX + 1, maxY + 1, zoom);
   return latLngBounds(corner1, corner2);
 }
-
-type InfoOverlayProps = {
-  segment: Segment;
-  moveLeft: () => void;
-  moveRight: () => void;
-  selectSegmentByDate: (date: string) => void;
-  photos: PhotoInfo[];
-};
 
 export type SlideWithDate = SlideImage & { date: string };
 
@@ -86,85 +73,6 @@ function photosToSlides(photos: PhotoInfo[]): SlideWithDate[] {
     };
   });
 }
-
-const InfoOverlay: FC<InfoOverlayProps> = ({
-  photos,
-  segment,
-  moveLeft,
-  moveRight,
-  selectSegmentByDate,
-}) => {
-  const thumbPath = thumbnailPath(segment.featuredPhotoFilename);
-
-  const [imageIndex, setImageIndex] = useState<null | number>(null);
-
-  const slides = photosToSlides(photos);
-
-  return (
-    <Card
-      className="info-overlay"
-      elevation={22}
-      sx={{ m: 2, position: "absolute", bottom: 0, zIndex: 1200 }}
-    >
-      <CardMedia
-        onClick={() => setImageIndex(segment.imageIndex)}
-        className="info-overlay-thumbnail pointer"
-        component="img"
-        image={thumbPath}
-      />
-
-      <Lightbox
-        slides={slides}
-        open={imageIndex !== null}
-        index={imageIndex ?? undefined}
-        close={() => setImageIndex(null)}
-        animation={{
-          swipe: 200,
-        }}
-        on={{
-          view({ index }) {
-            selectSegmentByDate(photos[index].date);
-          },
-        }}
-        carousel={{
-          preload: 4,
-          padding: "6px",
-        }}
-        plugins={[Fullscreen, Thumbnails, Zoom]}
-        thumbnails={{
-          position: "start",
-          border: 0,
-          gap: 3,
-          width: 70,
-          height: (160 * 70) / 250,
-          padding: 0,
-        }}
-      ></Lightbox>
-
-      <CardContent>
-        <Typography variant="h5">
-          <span className="pointer" onClick={moveLeft}>
-            &#10094;
-          </span>{" "}
-          {segment.date}{" "}
-          <span className="pointer" onClick={moveRight}>
-            &#10095;
-          </span>
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          {segment.description}
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>
-          <span title="Distance">
-            <StraightenIcon sx={{ verticalAlign: "middle" }} /> {segment.dist.toFixed(2)}km
-          </span>
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-};
 
 type AppProps = {
   segments: Segment[];
@@ -283,6 +191,7 @@ const App: FC<AppProps> = ({
   stays,
 }: AppProps) => {
   const [selectedSegment, setSelectedSegment] = useState<number | null>(0);
+  const [imageIndex, setImageIndex] = useState<number | null>(null);
 
   const move = useCallback(
     (offset: number) => () => {
@@ -319,22 +228,55 @@ const App: FC<AppProps> = ({
     [move],
   );
 
+  function selectSegmentByDate(date: string) {
+    const segment = segments.findIndex((s) => s.date === date);
+    if (segment !== -1) {
+      setSelectedSegment(segment);
+    }
+  }
+
+  const slides = photosToSlides(photos);
+
   return (
     <div onKeyDown={keyDown}>
       {selectedSegment !== null ? (
         <InfoOverlay
-          photos={photos}
+          openPhotoGallery={() =>
+            setImageIndex(segments[selectedSegment].imageIndex)
+          }
           segment={segments[selectedSegment]}
-          moveLeft={move(-1)}
-          moveRight={move(1)}
-          selectSegmentByDate={(date: string) => {
-            const segment = segments.findIndex((s) => s.date === date);
-            if (segment !== -1) {
-              setSelectedSegment(segment);
-            }
-          }}
+          moveToPrevSegment={move(-1)}
+          moveToNextSegment={move(1)}
         />
       ) : null}
+
+      <Lightbox
+        slides={slides}
+        open={imageIndex !== null}
+        index={imageIndex ?? undefined}
+        close={() => setImageIndex(null)}
+        animation={{
+          swipe: 200,
+        }}
+        on={{
+          view({ index }) {
+            selectSegmentByDate(photos[index].date);
+          },
+        }}
+        carousel={{
+          preload: 4,
+          padding: "6px",
+        }}
+        plugins={[Fullscreen, Thumbnails, Zoom]}
+        thumbnails={{
+          position: "start",
+          border: 0,
+          gap: 3,
+          width: 70,
+          height: (160 * 70) / 250,
+          padding: 0,
+        }}
+      ></Lightbox>
 
       <div id="popup-container" />
 

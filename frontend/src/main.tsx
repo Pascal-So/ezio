@@ -8,7 +8,10 @@ import App from "./App.tsx";
 import { fetchAllData } from "./data-fetching";
 
 // TODO: handle errors from fetching, maybe through a react error boundary?
-const data = await fetchAllData();
+let data = undefined;
+try {
+  data = await fetchAllData();
+} catch {}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
