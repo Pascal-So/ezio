@@ -1,5 +1,6 @@
 import * as z from "zod/mini";
 import type {
+  BoundingBox,
   Data,
   PhotoInfo,
   PointsGeometry,
@@ -36,7 +37,13 @@ export async function fetchAllData(): Promise<Data> {
     idx += 1;
   }
 
-  return { segments, photos: data.photos, backgroundSegments, stays };
+  return {
+    segments,
+    photos: data.photos,
+    backgroundSegments,
+    stays,
+    totalBoundingBox: data.totalBoundingBox,
+  };
 }
 
 export function thumbnailPath(filename: string): string {
@@ -55,17 +62,25 @@ function parseData(raw: any): JsonData {
     res: resSchema,
     thumb_res: resSchema,
   });
+  const boundingBoxSchema = z.object({
+    min_lat: z.number(),
+    min_lng: z.number(),
+    max_lat: z.number(),
+    max_lng: z.number(),
+  });
   const segmentInfoSchema = z.object({
     date: z.string(),
     description: z.optional(z.string()),
     dist_km: z.number(),
     climb_m: z.optional(z.number()),
     featured_photo: z.optional(z.string()),
+    bounding_box: boundingBoxSchema,
   });
   const schema = z.object({
     segments: z.array(segmentInfoSchema),
     photos: z.array(photoInfoSchema),
     background_segments: z.optional(z.array(z.string())),
+    total_bounding_box: boundingBoxSchema,
   });
 
   const parsed = schema.parse(raw);
@@ -80,6 +95,7 @@ function parseData(raw: any): JsonData {
       dist: seg.dist_km,
       climb: seg.climb_m,
       featuredPhotoFilename: seg.featured_photo || "",
+      boundingBox: convertBoundingBox(seg.bounding_box),
     })),
     photos: parsed.photos.map((photo) => ({
       filename: photo.filename,
@@ -88,6 +104,21 @@ function parseData(raw: any): JsonData {
       thumbnailResolution: { ...photo.thumb_res },
     })),
     backgroundSegments: parsed.background_segments || [],
+    totalBoundingBox: convertBoundingBox(parsed.total_bounding_box),
+  };
+}
+
+function convertBoundingBox(bbox: {
+  min_lat: number;
+  min_lng: number;
+  max_lat: number;
+  max_lng: number;
+}): BoundingBox {
+  return {
+    minLat: bbox.min_lat,
+    minLng: bbox.min_lng,
+    maxLat: bbox.max_lat,
+    maxLng: bbox.max_lng,
   };
 }
 
@@ -122,4 +153,5 @@ type JsonData = {
   segments: SegmentInfo[];
   photos: PhotoInfo[];
   backgroundSegments: string[];
+  totalBoundingBox: BoundingBox;
 };

@@ -20,6 +20,7 @@ createRoot(document.getElementById("root")!).render(
       photos={data.photos}
       backgroundSegments={data.backgroundSegments}
       stays={data.stays}
+      totalBoundingBox={data.totalBoundingBox}
     />
   </StrictMode>,
 );

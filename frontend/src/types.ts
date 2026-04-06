@@ -19,6 +19,8 @@ export type SegmentInfo = {
   climb: number | undefined;
 
   featuredPhotoFilename: string;
+
+  boundingBox: BoundingBox;
 };
 
 export type Resolution = {
@@ -33,9 +35,17 @@ export type PhotoInfo = {
   thumbnailResolution: Resolution;
 };
 
+export type BoundingBox = {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+};
+
 export type Data = {
   segments: Segment[];
   photos: PhotoInfo[];
   backgroundSegments: SegmentGeometry[];
   stays: PointsGeometry | null;
-}
+  totalBoundingBox: BoundingBox;
+};

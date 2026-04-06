@@ -5,9 +5,8 @@ from typing import Literal
 
 
 from pydantic_geojson import LineStringModel
-from pydantic_geojson._base import Coordinates
 
-from ezio.domain.model import Tilecoord
+from ezio.domain.model import BoundingBox, Tilecoord
 
 
 def latitude_to_mercator_y(lat: float) -> float:
@@ -52,30 +51,49 @@ def _clamp(val: int, lower: int, upper: int) -> int:
     return min(max(val, lower), upper)
 
 
-def bounding_box(tracks: list[LineStringModel]) -> tuple[Coordinates, Coordinates]:
-    bbox: tuple[Coordinates, Coordinates] | None = None
+def bounding_box(track: LineStringModel) -> BoundingBox:
+    bbox: BoundingBox | None = None
 
-    for coord in [coord for track in tracks for coord in track.coordinates]:
+    for coord in track.coordinates:
         if bbox is None:
-            bbox = (coord, coord)
+            bbox = BoundingBox(
+                min_lat=coord.lat,
+                max_lat=coord.lat,
+                min_lng=coord.lon,
+                max_lng=coord.lon,
+            )
         else:
-            min_coord = Coordinates(
-                lon=min(bbox[0].lon, coord.lon), lat=min(bbox[0].lat, coord.lat)
-            )
-            max_coord = Coordinates(
-                lon=max(bbox[1].lon, coord.lon), lat=max(bbox[1].lat, coord.lat)
-            )
-
-            bbox = (min_coord, max_coord)
+            bbox.min_lat = min(bbox.min_lat, coord.lat)
+            bbox.max_lat = max(bbox.max_lat, coord.lat)
+            bbox.min_lng = min(bbox.min_lng, coord.lon)
+            bbox.max_lng = max(bbox.max_lng, coord.lon)
 
     if bbox is None:
-        raise Exception("Dataset doesn't contain any coordinates!")
+        raise Exception("Track doesn't contain any coordinates!")
 
     return bbox
 
 
+def merge_bounding_boxes(bounding_boxes: list[BoundingBox]) -> BoundingBox:
+    total_bbox: BoundingBox | None = None
+
+    for bbox in bounding_boxes:
+        if total_bbox is None:
+            total_bbox = bbox
+        else:
+            total_bbox.min_lat = min(total_bbox.min_lat, bbox.min_lat)
+            total_bbox.max_lat = max(total_bbox.max_lat, bbox.max_lat)
+            total_bbox.min_lng = min(total_bbox.min_lng, bbox.min_lng)
+            total_bbox.max_lng = max(total_bbox.max_lng, bbox.max_lng)
+
+    if total_bbox is None:
+        raise Exception("Empty list of bounding boxes provided!")
+
+    return total_bbox
+
+
 def compute_required_map_tiles(
-    bbox: tuple[Coordinates, Coordinates],
+    bbox: BoundingBox,
 ) -> list[Tilecoord]:
     """
     The set of map tiles that we need to cover the area, across multiple zoom levels
@@ -89,10 +107,10 @@ def compute_required_map_tiles(
 
     for zoom_level in range(min_zoom_level, max_zoom_level + 1):
         x_range = degree_range_to_index_range(
-            (bbox[0].lon, bbox[1].lon), zoom_level, padding, "lng"
+            (bbox.min_lng, bbox.max_lng), zoom_level, padding, "lng"
         )
         y_range = degree_range_to_index_range(
-            (bbox[0].lat, bbox[1].lat), zoom_level, padding, "lat"
+            (bbox.min_lat, bbox.max_lat), zoom_level, padding, "lat"
         )
 
         for x in range(*x_range):

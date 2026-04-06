@@ -9,45 +9,43 @@ import {
   LayerGroup,
 } from "react-leaflet";
 
-import type { Segment, SegmentGeometry } from "../types";
-
-function tileToLatLng(x: number, y: number, zoom: number): LatLng {
-  const n = Math.pow(2, zoom);
-  const lonDeg = (x / n) * 360.0 - 180.0;
-  const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)));
-  const latDeg = (latRad * 180) / Math.PI;
-  return latLng(latDeg, lonDeg);
-}
-
-function getBounds(): LatLngBounds {
-  const zoom = 5;
-  const minX = 16;
-  const minY = 10;
-  const maxX = 19;
-  const maxY = 13;
-
-  const corner1 = tileToLatLng(minX, minY, zoom);
-  const corner2 = tileToLatLng(maxX + 1, maxY + 1, zoom);
-  return latLngBounds(corner1, corner2);
-}
+import type { BoundingBox, Segment, SegmentGeometry } from "../types";
 
 type MapViewProps = {
   segments: Segment[];
+  totalBoundingBox: BoundingBox;
   selectedSegment: number | null;
   setSelectedSegment: (id: number | null) => void;
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
 };
 
+function boundingBoxCenter(bbox: BoundingBox): LatLng {
+  return latLng(
+    (bbox.minLat + bbox.maxLat) / 2,
+    (bbox.minLng + bbox.maxLng) / 2,
+  );
+}
+
+function boundingBoxToLeaflet(
+  bbox: BoundingBox,
+  padding: LatLng,
+): LatLngBounds {
+  return latLngBounds(
+    [bbox.minLat - padding.lat, bbox.minLng - padding.lng],
+    [bbox.maxLat + padding.lat, bbox.maxLng + padding.lng],
+  );
+}
+
 function MapView(props: MapViewProps) {
   return (
     <>
       <MapContainer
-        center={[42.5, 26.2]}
+        center={boundingBoxCenter(props.totalBoundingBox)}
         zoom={8}
         minZoom={6}
         maxZoom={9}
-        maxBounds={getBounds()}
+        maxBounds={boundingBoxToLeaflet(props.totalBoundingBox, latLng(1, 1))}
       >
         <MapContents {...props} />
       </MapContainer>

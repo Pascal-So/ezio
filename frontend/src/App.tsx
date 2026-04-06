@@ -1,7 +1,7 @@
 import { type FC, type KeyboardEvent, useCallback, useState } from "react";
 import type { FeatureCollection, MultiLineString, Point } from "geojson";
 
-import type { PhotoInfo, Segment } from "./types";
+import type { BoundingBox, PhotoInfo, Segment } from "./types";
 import InfoOverlay from "./components/info-overlay";
 import MapView from "./components/map";
 import PhotoGallery from "./components/photo-gallery";
@@ -11,6 +11,7 @@ type AppProps = {
   photos: PhotoInfo[];
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
+  totalBoundingBox: BoundingBox;
 };
 
 const App: FC<AppProps> = ({
@@ -18,6 +19,7 @@ const App: FC<AppProps> = ({
   photos,
   backgroundSegments,
   stays,
+  totalBoundingBox,
 }: AppProps) => {
   const [selectedSegment, setSelectedSegment] = useState<number | null>(0);
   const [imageIndex, setImageIndex] = useState<number | null>(null);
@@ -90,6 +92,7 @@ const App: FC<AppProps> = ({
         setSelectedSegment={setSelectedSegment}
         backgroundSegments={backgroundSegments}
         stays={stays}
+        totalBoundingBox={totalBoundingBox}
       />
     </div>
   );

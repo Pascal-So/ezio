@@ -10,6 +10,7 @@ from ezio.domain.geo import (
     bounding_box,
     climb,
     compute_required_map_tiles,
+    merge_bounding_boxes,
     track_length_km,
 )
 from ezio.domain.model import Data, OutputDirectory, SegmentInfo
@@ -32,9 +33,7 @@ def run_wizard(
     photos = list_photos(source_directory)
     tracks_with_dt = track_source.get_tracks(source_directory)
 
-    # TODO: if data already exists then we load it from disk and skip to the
-    # data input section
-    data = Data(segments=[], photos=[], background_segments=[])
+    segments: list[SegmentInfo] = []
 
     # group tracks by date
     tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
@@ -62,17 +61,31 @@ def run_wizard(
             else:
                 climb_m += c
 
-        data.segments.append(
+        bbox = merge_bounding_boxes([bounding_box(track) for track in tracks])
+
+        segments.append(
             SegmentInfo(
                 date=date,
                 description="",
                 dist_km=distance_km,
                 climb_m=climb_m,
                 featured_photo="",
+                bounding_box=bbox,
             )
         )
 
     write_geojson_files(output_directory, tracks_by_date)
+
+    total_bounding_box = merge_bounding_boxes([seg.bounding_box for seg in segments])
+
+    # TODO: if data already exists then we load it from disk and skip to the
+    # data input section
+    data = Data(
+        segments=segments,
+        photos=[],
+        background_segments=[],
+        total_bounding_box=total_bounding_box,
+    )
 
     # convert and resize images
     for taken_at, photo in photos:
@@ -81,8 +94,7 @@ def run_wizard(
         data.photos.append(photo_info)
 
     # download map tiles
-    bbox = bounding_box([track for _, track in tracks_with_dt])
-    tile_coords = compute_required_map_tiles(bbox)
+    tile_coords = compute_required_map_tiles(total_bounding_box)
     print(f"total: {len(tile_coords)} tiles")
     for tile_coord in tile_coords:
         # TODO: progress bar

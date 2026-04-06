@@ -1,4 +1,4 @@
-import { photoPath } from "../data-fetching";
+import { thumbnailPath } from "../data-fetching";
 import type { SegmentInfo } from "../types";
 import RulerIcon from "../assets/ruler.svg";
 import MountainsIcon from "../assets/mountains.svg";
@@ -16,7 +16,7 @@ function InfoOverlay({
   moveToPrevSegment,
   openPhotoGallery,
 }: InfoOverlayProps) {
-  const featuredPhotoPath = photoPath(segment.featuredPhotoFilename);
+  const featuredPhotoPath = thumbnailPath(segment.featuredPhotoFilename);
 
   return (
     <div className="shadow-lg flex flex-col max-w-60 bg-slate-100 rounded-lg absolute z-[1000] bottom-3 left-3 overflow-hidden">

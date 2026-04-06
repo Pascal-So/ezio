@@ -32,18 +32,27 @@ class PhotoInfo(BaseModel):
     thumb_res: Resolution
 
 
+class BoundingBox(BaseModel):
+    min_lat: float
+    min_lng: float
+    max_lat: float
+    max_lng: float
+
+
 class SegmentInfo(BaseModel):
     date: dt.date
     description: str
     dist_km: float
     climb_m: float | None
     featured_photo: str | None
+    bounding_box: BoundingBox
 
 
 class Data(BaseModel):
     segments: list[SegmentInfo]
     photos: list[PhotoInfo]
     background_segments: list[str]
+    total_bounding_box: BoundingBox
 
 
 class OutputDirectory(Path):
@@ -55,7 +64,7 @@ class OutputDirectory(Path):
 
     @property
     def thumbs_dir(self) -> Path:
-        return self / "img" / "photos" / "thumbs"
+        return self / "img" / "photos" / "thumb"
 
     @property
     def tiles_dir(self) -> Path:
