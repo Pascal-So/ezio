@@ -13,16 +13,18 @@ from ezio.domain.geo import (
     merge_bounding_boxes,
     track_length_km,
 )
-from ezio.domain.model import Data, OutputDirectory, SegmentInfo
+from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
+from ezio.ports.progress import Progress
 from ezio.ports.tilesource import Tilesource
 from ezio.ports.tracksource import Tracksource
 
 
 def run_wizard(
+    source_directory: Path,
     output_directory: OutputDirectory,
     track_source: Tracksource,
     tile_source: Tilesource,
-    source_directory: Path,
+    progress: Progress,
 ) -> None:
     """
     The wizard guides the user through the steps to generate the static website
@@ -95,10 +97,24 @@ def run_wizard(
 
     # download map tiles
     tile_coords = compute_required_map_tiles(total_bounding_box)
-    print(f"total: {len(tile_coords)} tiles")
-    for tile_coord in tile_coords:
-        # TODO: progress bar
-        path = output_directory.tiles_dir / tile_coord.filename
+    download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
+
+    # TODO: data input section where we ask the user for segment names
+    # and segment featured photos
+
+    # save data.json
+    with open(output_directory.json_path, "w") as f:
+        _ = f.write(data.model_dump_json(indent=2))
+
+
+def download_tiles(
+    tile_coords: list[Tilecoord],
+    tile_source: Tilesource,
+    tiles_dir: Path,
+    progress: Progress,
+) -> None:
+    for tile_coord in progress.track(tile_coords, description="Downloading Map Tiles"):
+        path = tiles_dir / tile_coord.filename
 
         # skip tiles that we've already got
         if path.is_file():
@@ -107,10 +123,3 @@ def run_wizard(
         tile = tile_source.get_tile(tile_coord)
         with open(path, "wb") as f:
             _ = f.write(tile)
-
-    # TODO: data input section where we ask the user for segment names
-    # and segment featured photos
-
-    # save data.json
-    with open(output_directory.json_path, "w") as f:
-        _ = f.write(data.model_dump_json(indent=2))

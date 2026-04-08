@@ -101,7 +101,7 @@ def compute_required_map_tiles(
 
     min_zoom_level = 4
     max_zoom_level = 9
-    padding = 1.5
+    padding = 2.5
 
     tiles: list[Tilecoord] = []
 

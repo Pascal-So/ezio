@@ -2,21 +2,29 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
+# from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackSource
 from ezio.adapters.jawg import Jawg
+from ezio.adapters.rich_progress import RichProgress
 from ezio.domain.model import OutputDirectory
 from ezio.domain.wizard import run_wizard
-from ezio.ports.tilesource import Tilesource
-from ezio.ports.tracksource import Tracksource
 
 
 def main() -> None:
     args = _parse_args()
 
-    tile_source: Tilesource = Jawg()
-    track_source: Tracksource = GpxTrackSource()
+    # todo: logging config with level=os.environ.get('LOGLEVEL', 'INFO').upper()
 
-    run_wizard(args.output_directory, track_source, tile_source, args.input_dir)
+    tile_source = Jawg()
+    # tile_source = FakeTiles()
+    track_source = GpxTrackSource()
+    progress = RichProgress()
+
+    run_wizard(
+        args.input_dir, args.output_directory, track_source, tile_source, progress
+    )
+
+    progress.stop()
 
 
 @dataclass
