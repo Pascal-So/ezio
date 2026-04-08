@@ -23,6 +23,6 @@ class RichProgress(Progress):
     def track[T](self, iter: Iterable[T], description: str) -> Iterable[T]:
         return self._progress.track(iter, description=description)
 
-    def stop(self):
+    def stop(self) -> None:
         """Call this once we don't need to show any further progress bars"""
         self._progress.stop()

@@ -8,30 +8,26 @@ from PIL import Image, UnidentifiedImageError
 logger = logging.getLogger(__name__)
 
 
-def list_photos(directory: Path) -> list[tuple[dt.datetime, Path]]:
-    photos: list[tuple[dt.datetime, Path]] = []
+def load_photo(file_path: Path) -> tuple[dt.datetime, Path] | None:
+    if not file_path.is_file():
+        return None
 
-    for file_path in directory.iterdir():
-        if not file_path.is_file():
-            continue
+    try:
+        _ = Image.open(file_path)
+    except UnidentifiedImageError:
+        return None
+    except Exception:
+        logger.exception(f"Cannot load photo {file_path}")
+        return None
 
-        try:
-            _ = Image.open(file_path)
-        except UnidentifiedImageError:
-            logger.info(
-                f"skipping file {file_path} because it cannot be identified as an image"
-            )
-            continue
+    taken_at = _get_date_taken(file_path)
+    if taken_at is None:
+        logger.info(
+            f"skipping photo {file_path} because the capture date could not be determined"
+        )
+        return None
 
-        taken_at = _get_date_taken(file_path)
-        if taken_at is None:
-            logger.info(
-                f"skipping photo {file_path} because the capture date could not be determined"
-            )
-            continue
-
-        photos.append((taken_at, file_path))
-    return photos
+    return (taken_at, file_path)
 
 
 # TODO: drop dependency on exifread and just use exif info in Pillow instead?

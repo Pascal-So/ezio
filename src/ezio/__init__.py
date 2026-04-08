@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # from ezio.adapters.fake_tiles import FakeTiles
-from ezio.adapters.gpx import GpxTrackSource
+from ezio.adapters.gpx import GpxTrackLoader
 from ezio.adapters.jawg import Jawg
 from ezio.adapters.rich_progress import RichProgress
 from ezio.domain.model import OutputDirectory
@@ -17,11 +17,11 @@ def main() -> None:
 
     tile_source = Jawg()
     # tile_source = FakeTiles()
-    track_source = GpxTrackSource()
+    track_loaders = [GpxTrackLoader()]
     progress = RichProgress()
 
     run_wizard(
-        args.input_dir, args.output_directory, track_source, tile_source, progress
+        args.input_dir, args.output_directory, track_loaders, tile_source, progress
     )
 
     progress.stop()

@@ -9,63 +9,58 @@ from gpxpy.gpx import GPXTrackSegment
 from pydantic_geojson import LineStringModel
 from pydantic_geojson._base import Coordinates
 
-from ezio.ports.tracksource import Tracksource
+from ezio.ports.tracksource import TrackLoader
 
 logger = logging.getLogger(__name__)
 
 
-class GpxTrackSource(Tracksource):
-    """Load track segments from a directory containing GPX files"""
-
-    def __init__(self) -> None:
-        pass
+class GpxTrackLoader(TrackLoader):
+    """Load track segments from a GPX file"""
 
     @override
-    def get_tracks(self, directory: Path) -> list[tuple[dt.datetime, LineStringModel]]:
-        gpx_files = list(directory.glob("*.gpx"))
+    def load_tracks(
+        self, file_path: Path
+    ) -> list[tuple[dt.datetime, LineStringModel]] | None:
+        if not file_path.is_file() or file_path.suffix != ".gpx":
+            return None
 
-        if len(gpx_files) == 0:
-            logger.warning(f"No .gpx files found in the input directory {directory}")
-            return []
+        try:
+            with open(file_path, "r") as gpx_file:
+                gpx = gpxpy.parse(gpx_file)
+
+        except Exception as e:
+            logger.warning(f"Skipping gpx file {file_path.name} due to error: {e}")
+            return None
+
+        logger.info(f"Reading {file_path.name}")
+
+        filename_date = _get_date_from_filename(file_path.name)
 
         linestrings: list[tuple[dt.datetime, LineStringModel]] = []
-        for gpx_path in gpx_files:
-            try:
-                with open(gpx_path, "r") as gpx_file:
-                    gpx = gpxpy.parse(gpx_file)
+        for track_idx, track in enumerate(gpx.tracks):
+            for segment_idx, segment in enumerate(track.segments):
+                if len(segment.points) < 2:
+                    continue
 
-            except Exception as e:
-                logger.warning(f"Skipping file {gpx_path.name} due to error: {e}")
-                continue
+                track_date = _get_date_from_gpx_segment(segment)
 
-            logger.info(f"Reading {gpx_path.name}")
-
-            filename_date = _get_date_from_filename(gpx_path.name)
-
-            for track_idx, track in enumerate(gpx.tracks):
-                for segment_idx, segment in enumerate(track.segments):
-                    if len(segment.points) < 2:
+                # if the GPX does not provide a date we fall back to filename
+                if not track_date:
+                    if filename_date is not None:
+                        logger.info(
+                            f"  - GPX track {track_idx}, segment {segment_idx} does not contain time info. Using date from filename: {filename_date}"
+                        )
+                        track_date = dt.datetime.combine(
+                            filename_date, dt.datetime.min.time()
+                        )
+                    else:
+                        logger.warning(
+                            f"Skipping track {track_idx}, segment {segment_idx} in file {file_path.name} because the date of the recording could not be determined"
+                        )
                         continue
 
-                    track_date = _get_date_from_gpx_segment(segment)
-
-                    # if the GPX does not provide a date we fall back to filename
-                    if not track_date:
-                        if filename_date is not None:
-                            logger.info(
-                                f"  - GPX track {track_idx}, segment {segment_idx} does not contain time info. Using date from filename: {filename_date}"
-                            )
-                            track_date = dt.datetime.combine(
-                                filename_date, dt.datetime.min.time()
-                            )
-                        else:
-                            logger.warning(
-                                f"Skipping track {track_idx}, segment {segment_idx} in file {gpx_path.name} because the date of the recording could not be determined"
-                            )
-                            continue
-
-                    linestring = _segment_to_linestring(segment)
-                    linestrings.append((track_date, linestring))
+                linestring = _segment_to_linestring(segment)
+                linestrings.append((track_date, linestring))
 
         return linestrings
 

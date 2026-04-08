@@ -13,3 +13,8 @@ def tempdir() -> Generator[Path, None, None]:
 
     with TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
+
+
+@fixture
+def data_dir() -> Path:
+    return Path("tests/data/")

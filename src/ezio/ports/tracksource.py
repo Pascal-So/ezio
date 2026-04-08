@@ -5,7 +5,9 @@ from pathlib import Path
 from pydantic_geojson import LineStringModel
 
 
-class Tracksource(ABC):
+class TrackLoader(ABC):
     @abstractmethod
-    def get_tracks(self, directory: Path) -> list[tuple[dt.datetime, LineStringModel]]:
+    def load_tracks(
+        self, file_path: Path
+    ) -> list[tuple[dt.datetime, LineStringModel]] | None:
         pass
