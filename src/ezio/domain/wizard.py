@@ -16,7 +16,7 @@ from ezio.domain.geo import (
     merge_bounding_boxes,
     track_length_km,
 )
-from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
+from ezio.domain.model import Data, OutputDirectory, PhotoInfo, SegmentInfo, Tilecoord
 from ezio.ports.progress import Progress
 from ezio.ports.tilesource import Tilesource
 from ezio.ports.tracksource import TrackLoader
@@ -84,20 +84,35 @@ def run_wizard(
 
     total_bounding_box = merge_bounding_boxes([seg.bounding_box for seg in segments])
 
-    # TODO: if data already exists then we load it from disk and skip to the
-    # data input section
-    data = Data(
-        segments=segments,
-        photos=[],
-        background_segments=[],
-        total_bounding_box=total_bounding_box,
-    )
+    photos: list[PhotoInfo] = []
 
     # convert and resize images
     for taken_at, photo in inputs.photos:
         # TODO: progress bar
         photo_info = save_photo(output_directory, photo, taken_at)
-        data.photos.append(photo_info)
+        photos.append(photo_info)
+
+    if output_directory.json_path.is_file():
+        logger.info(
+            f"Existing data found in {output_directory.json_path}, merging with new data..."
+        )
+
+        with open(output_directory.json_path) as f:
+            existing_data = Data.model_validate_json(f.read())
+
+        available_photos = {photo.filename for photo in photos}
+        merge_existing_segments(
+            existing_segments=existing_data.segments,
+            new_segments=segments,
+            photos=available_photos,
+        )
+
+    data = Data(
+        segments=segments,
+        photos=photos,
+        background_segments=[],
+        total_bounding_box=total_bounding_box,
+    )
 
     # download map tiles
     tile_coords = compute_required_map_tiles(total_bounding_box)
@@ -172,3 +187,27 @@ def download_tiles(
         tile = tile_source.get_tile(tile_coord)
         with open(path, "wb") as f:
             _ = f.write(tile)
+
+
+def merge_existing_segments(
+    existing_segments: list[SegmentInfo],
+    new_segments: list[SegmentInfo],
+    photos: Collection[str],
+) -> None:
+    """
+    Merge existing segment information from a previous generator run into the
+    new list of segments from this run.
+
+    This modifies the list `new_segments`
+    """
+
+    existing_segments_dict = {seg.date: seg for seg in existing_segments}
+
+    for seg in new_segments:
+        existing_seg = existing_segments_dict.get(seg.date)
+        if existing_seg is None:
+            continue
+
+        seg.description = existing_seg.description
+        if existing_seg.featured_photo in photos:
+            seg.featured_photo = existing_seg.featured_photo
