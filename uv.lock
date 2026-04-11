@@ -83,20 +83,10 @@ wheels = [
 ]
 
 [[package]]
-name = "exifread"
-version = "3.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/20/64/e8f40966ca766173fe57cc4de7d35492cf18949ced8b612924d48fa1d297/ExifRead-3.0.0.tar.gz", hash = "sha256:0ac5a364169dbdf2bd62f94f5c073970ab6694a3166177f5e448b10c943e2ca4", size = 39895, upload-time = "2022-05-08T17:15:56.122Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/d6/189b0016ae8995ad94cd6e2573baf0c289ff862996821d4e42eb6a0206e3/ExifRead-3.0.0-py3-none-any.whl", hash = "sha256:2c5c59ef03b3bbee75b82b82d2498006b3c13509f35c9a76c7552faff73fa2d5", size = 40428, upload-time = "2022-05-08T18:39:38.175Z" },
-]
-
-[[package]]
 name = "ezio"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "exifread" },
     { name = "gpxpy" },
     { name = "pillow" },
     { name = "pydantic-geojson" },
@@ -110,13 +100,11 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
-    { name = "types-exifread" },
     { name = "types-requests" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "exifread", specifier = "==3.0.0" },
     { name = "gpxpy", specifier = ">=1.6.2" },
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "pydantic-geojson", specifier = ">=0.3.2" },
@@ -130,7 +118,6 @@ dev = [
     { name = "mypy", specifier = ">=1.19.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.15.8" },
-    { name = "types-exifread", specifier = "==3.0.0" },
     { name = "types-requests", specifier = ">=2.33.0.20260327" },
 ]
 
@@ -464,15 +451,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/37/e6/90b2b33419f59d0f2c4c8a48a4b74b460709a557e8e0064cf33ad894f983/ruff-0.15.8-py3-none-win32.whl", hash = "sha256:bc1f0a51254ba21767bfa9a8b5013ca8149dcf38092e6a9eb704d876de94dc34", size = 10571959, upload-time = "2026-03-26T18:39:36.117Z" },
     { url = "https://files.pythonhosted.org/packages/1f/a2/ef467cb77099062317154c63f234b8a7baf7cb690b99af760c5b68b9ee7f/ruff-0.15.8-py3-none-win_amd64.whl", hash = "sha256:04f79eff02a72db209d47d665ba7ebcad609d8918a134f86cb13dd132159fc89", size = 11743893, upload-time = "2026-03-26T18:39:25.01Z" },
     { url = "https://files.pythonhosted.org/packages/15/e2/77be4fff062fa78d9b2a4dea85d14785dac5f1d0c1fb58ed52331f0ebe28/ruff-0.15.8-py3-none-win_arm64.whl", hash = "sha256:cf891fa8e3bb430c0e7fac93851a5978fc99c8fa2c053b57b118972866f8e5f2", size = 11048175, upload-time = "2026-03-26T18:40:01.06Z" },
-]
-
-[[package]]
-name = "types-exifread"
-version = "3.0.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/34/7c/b7358e5e17206a010ac5b0398dbff5f8a77589df593424655444e3adde22/types-ExifRead-3.0.0.0.tar.gz", hash = "sha256:59e21205bb0b7d0c6f8ae51010f9516c05f422f9cb227c0ff75c4ec8ac6372d0", size = 4685, upload-time = "2022-12-23T12:29:30.581Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/ab/b36829bf0e585eb86a1967253d74cdd27b126c41270729917c1527616358/types_ExifRead-3.0.0.0-py3-none-any.whl", hash = "sha256:d127c64907d056c4ab5f2079e752b42d75affe9588c437f55498a73bc6741215", size = 7183, upload-time = "2022-12-23T12:29:29.19Z" },
 ]
 
 [[package]]
