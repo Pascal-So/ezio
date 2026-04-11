@@ -2,7 +2,6 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
-# from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.adapters.jawg import Jawg
 from ezio.adapters.rich_progress import RichProgress

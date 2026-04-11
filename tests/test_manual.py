@@ -12,6 +12,8 @@ import time
 import pytest
 
 from ezio.adapters.rich_progress import RichProgress
+from ezio.domain.generator.frontend import copy_frontend
+from ezio.domain.model import OutputDirectory
 
 # Disable this entire test file if the env var is not set.
 pytestmark = pytest.mark.skipif(
@@ -26,3 +28,7 @@ def test_progress_bar() -> None:
         time.sleep(0.3)
 
     progress.stop()
+
+
+def test_resource_path() -> None:
+    copy_frontend(OutputDirectory("/tmp"))

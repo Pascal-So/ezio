@@ -1,6 +1,6 @@
 [project]
 name = "ezio"
-version = "0.1.0" # remember to also update the version in version.py
+version = "0.0.1" # remember to also update the version in version.py
 description = "Display a recorded route as a static website"
 readme = "Readme.md"
 authors = [
@@ -8,7 +8,6 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "exifread==3.0.0", # pin to latest release before https://github.com/ianare/exif-py/issues/252
     "gpxpy>=1.6.2",
     "pillow>=12.1.1",
     "pydantic-geojson>=0.3.2",
@@ -30,5 +29,4 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.8",
     "types-requests>=2.33.0.20260327",
-    "types-exifread==3.0.0",
 ]
