@@ -9,6 +9,11 @@ example output.
 
 ![Example image of a rendered route across the balkans](balkanroute.png)
 
+The name is inspired by [Ezio Auditore da Firenze](https://en.wikipedia.org/wiki/Ezio_Auditore_da_Firenze)
+because in the Assassin's Creed game series you have to climb towers to uncover
+the map. Here in this static site generator, you, uhh.. go cycling and then get
+to see a pretty map of it? Pretty much the same thing if you ask me.
+
 ## Usage
 
 TODO
