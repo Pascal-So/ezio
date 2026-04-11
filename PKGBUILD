@@ -3,7 +3,7 @@ pkgname=ezio
 pkgver=0.0.1
 pkgrel=1
 pkgdesc="Static site generator for GPS routes"
-arch=('x86_64') # limited to x86_64 because of python-pillow
+arch=(any)
 url="https://github.com/Pascal-So/ezio"
 license=('AGPL-3.0-or-later')
 depends=(
@@ -12,27 +12,39 @@ depends=(
     python-pillow
     python-requests
     python-rich
-    # todo: geojson
+    python-pydantic
 )
 makedepends=(
     python-build
     python-installer
     python-uv-build
+    sed
+    findutils
 )
 
-_archive="${pkgname}-v${pkgver}"
+_geojson_version="0.3.2"
 source=(
     "${url}/archive/v${pkgver}/${pkgname}-v${pkgver}.tar.gz"
     "${url}/releases/download/v${pkgver}/frontend.zip"
+
+    # HACK: for now we just vendor pydantic-geojson into the package because
+    # there is no arch package available for it yet.
+    "https://github.com/gb-libs/pydantic-geojson/archive/refs/tags/${_geojson_version}.tar.gz"
 )
 sha256sums=(
     "e106b96ad28aa44ffc411ef181ba9322c3e7b7bf69e82dded31a8b5de78b377e"
     "6980d507e114959ce80fedfad671063b25bf3605f44cf799f6e07dc4735c6f52"
+    "3957a8c532885c9843430b4ba1fe705e5a3a0f35a405eb318c4f459f7b36b61a"
 )
 
 prepare() {
     ls
     cd "${pkgname}-${pkgver}"
+
+    # vendor pydantic-geojson
+    find ./src -type f -print0 | xargs -0 sed -i 's/^from pydantic_geojson/from ezio.pydantic_geojson/'
+    cp -r "../pydantic-geojson-${_geojson_version}/pydantic_geojson" "src/${pkgname}/pydantic_geojson"
+
     # copy the frontend into the package
     cp -r "../dist" "src/${pkgname}/domain/generator/frontend/dist"
 }
