@@ -19,8 +19,23 @@ makedepends=(
     python-installer
     python-uv-build
 )
-source=("${pkgname}-${pkgver}::git+${url}.git")
-sha256sums=('SKIP') # todo
+
+_archive="${pkgname}-v${pkgver}"
+source=(
+    "${url}/archive/v${pkgver}/${pkgname}-v${pkgver}.tar.gz"
+    "${url}/releases/download/v${pkgver}/frontend.zip"
+)
+sha256sums=(
+    "e106b96ad28aa44ffc411ef181ba9322c3e7b7bf69e82dded31a8b5de78b377e"
+    "6980d507e114959ce80fedfad671063b25bf3605f44cf799f6e07dc4735c6f52"
+)
+
+prepare() {
+    ls
+    cd "${pkgname}-${pkgver}"
+    # copy the frontend into the package
+    cp -r "../dist" "src/${pkgname}/domain/generator/frontend/dist"
+}
 
 build() {
     cd "${pkgname}-${pkgver}"
