@@ -25,7 +25,7 @@ jobs:
           python-version: "3.14"
 
       - name: Build Wheel
-        run: just build-wheel
+        run: echo $0 && just build-wheel
 
       - name: Zip Frontend
         working-directory: ./frontend
