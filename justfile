@@ -25,7 +25,9 @@ zip-frontend:
 build-wheel: build-frontend
     rm -rf "{{ frontend-path-in-package }}"
     mkdir -p "{{ frontend-path-in-package }}"
-    cp -r frontend/dist/{assets,index.html} "{{ frontend-path-in-package }}"
+    ls frontend/dist
+    ls frontend/dist/assets
+    cp -r frontend/dist/assets frontend/dist/index.html "{{ frontend-path-in-package }}"
     python -m build --verbose --wheel
 
 # Remove all build artifacts and caches
