@@ -1,5 +1,8 @@
 # Ezio
 
+<b>🚧 WIP! This project is not in a working state yet, don't use this right now. 🚧</b>
+<hr/>
+
 Display a recorded route as a static website. Take a look at my
 [Balkans cycling route](https://projects.pascalsommer.ch/balkanvelo/) to see an 
 example output.
