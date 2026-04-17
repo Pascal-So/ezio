@@ -1,12 +1,48 @@
-from collections.abc import Iterable
 import datetime as dt
+from collections.abc import Iterable
 from pathlib import Path
 from typing import override
 
 from ezio.adapters.fake_tiles import FakeTiles
-from ezio.domain.model import BoundingBox, SegmentInfo, Tilecoord
-from ezio.domain.wizard import download_tiles, merge_existing_segments
+from ezio.adapters.gpx import GpxTrackLoader
+from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
+from ezio.domain.wizard import download_tiles, merge_existing_segments, run_wizard
 from ezio.ports.progress import Progress
+from ezio.ports.segment_info_source import SegmentInfoSource
+
+from .utils import make_segment
+
+
+def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
+    descriptions = {"2022-10-07": "Description for the first day"}
+
+    output_dir = OutputDirectory(tempdir)
+    run_wizard(
+        data_dir,
+        output_dir,
+        [GpxTrackLoader()],
+        FakeTiles(),
+        MockProgress(),
+        MockSegmentInfoSource(descriptions),
+    )
+
+    # Check data.json
+    assert output_dir.json_path.is_file()
+    with open(output_dir.json_path) as f:
+        data = Data.model_validate_json(f.read())
+
+        assert len(data.segments) == 3
+
+        # Check that all segments actually exist as files
+        for seg in data.segments:
+            assert (output_dir.tracks_dir / f"{seg.date}.geojson").is_file()
+
+        assert data.segments[0].description == "Description for the first day"
+
+        # Check that all photos exist as files
+        for photo in data.photos:
+            assert (output_dir.thumbs_dir / photo.filename).is_file()
+            assert (output_dir.photos_dir / photo.filename).is_file()
 
 
 def test_tile_downloading_shows_up_in_progress_bar(tempdir: Path) -> None:
@@ -21,6 +57,19 @@ def test_tile_downloading_shows_up_in_progress_bar(tempdir: Path) -> None:
 
     assert progress.nr_items == nr_tiles
     assert progress.finished
+
+
+class MockSegmentInfoSource(SegmentInfoSource):
+    def __init__(self, descriptions: dict[str, str]) -> None:
+        self._descriptions: dict[str, str] = descriptions
+
+    @override
+    def add_descriptions(self, segments: list[SegmentInfo]) -> None:
+        for seg in segments:
+            desc = self._descriptions.get(seg.date.strftime("%Y-%m-%d"))
+
+            if desc is not None:
+                seg.description = desc
 
 
 class MockProgress(Progress):
@@ -44,18 +93,6 @@ def test_merge_existing_segments() -> None:
         dt.date(2026, 4, 12),
         dt.date(2026, 4, 13),
     ]
-
-    def make_segment(
-        date: dt.date, description: str = "", featured_photo: str | None = None
-    ) -> SegmentInfo:
-        return SegmentInfo(
-            date=date,
-            description=description,
-            dist_km=1,
-            climb_m=1,
-            featured_photo=featured_photo,
-            bounding_box=BoundingBox(min_lat=0, min_lng=0, max_lat=0, max_lng=0),
-        )
 
     existing_segments = [
         make_segment(days[0], "day 0", "1.jpg"),

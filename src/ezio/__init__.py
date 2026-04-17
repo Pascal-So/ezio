@@ -2,9 +2,11 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
+
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.adapters.jawg import Jawg
 from ezio.adapters.rich_progress import RichProgress
+from ezio.adapters.textual_segment_info_source import TextualSegmentInfoSource
 from ezio.domain.model import OutputDirectory
 from ezio.domain.wizard import run_wizard
 
@@ -18,9 +20,15 @@ def main() -> None:
     # tile_source = FakeTiles()
     track_loaders = [GpxTrackLoader()]
     progress = RichProgress()
+    segment_info_source = TextualSegmentInfoSource()
 
     run_wizard(
-        args.input_dir, args.output_directory, track_loaders, tile_source, progress
+        args.input_dir,
+        args.output_directory,
+        track_loaders,
+        tile_source,
+        progress,
+        segment_info_source,
     )
 
     progress.stop()

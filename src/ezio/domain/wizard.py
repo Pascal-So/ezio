@@ -18,6 +18,7 @@ from ezio.domain.geo import (
 )
 from ezio.domain.model import Data, OutputDirectory, PhotoInfo, SegmentInfo, Tilecoord
 from ezio.ports.progress import Progress
+from ezio.ports.segment_info_source import SegmentInfoSource
 from ezio.ports.tilesource import Tilesource
 from ezio.ports.tracksource import TrackLoader
 
@@ -30,6 +31,7 @@ def run_wizard(
     track_loaders: Collection[TrackLoader],
     tile_source: Tilesource,
     progress: Progress,
+    segment_info_source: SegmentInfoSource,
 ) -> None:
     """
     The wizard guides the user through the steps to generate the static website
@@ -118,8 +120,7 @@ def run_wizard(
     tile_coords = compute_required_map_tiles(total_bounding_box)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
 
-    # TODO: data input section where we ask the user for segment names
-    # and segment featured photos
+    segment_info_source.add_descriptions(data.segments)
 
     # save data.json
     with open(output_directory.json_path, "w") as f:
