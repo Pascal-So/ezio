@@ -5,6 +5,11 @@ body {
   margin: 0;
 
   --yarl__thumbnails_container_padding: 6px;
+
+  --yarl__container_background_color: #000d;
+  --yarl__thumbnails_container_background_color: var(
+    --yarl__container_background_color
+  );
 }
 
 html,

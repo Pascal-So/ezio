@@ -68,7 +68,7 @@ const App: FC<AppProps> = ({
 
   return (
     <div onKeyDown={keyDown}>
-      {selectedSegment !== null ? (
+      {selectedSegment !== null && imageIndex === null ? (
         <InfoOverlay
           openPhotoGallery={() =>
             setImageIndex(segments[selectedSegment].imageIndex)
