@@ -32,3 +32,6 @@ dev = [
     "textual-dev>=1.8.0",
     "types-requests>=2.33.0.20260327",
 ]
+
+[tool.pyright]
+reportUnusedCallResult = "none"

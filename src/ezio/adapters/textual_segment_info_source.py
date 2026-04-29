@@ -71,7 +71,7 @@ class SegmentInfoApp(App[bool]):
             for seg in self._segments:
                 with Vertical():
                     yield Label(f"Date {seg.date.strftime('%Y-%m-%d')}", classes="date")
-                    yield Label(f"{seg.dist_km} km")
+                    yield Label(f"{seg.dist_km:.3f} km")
 
                 input = Input(placeholder="Description")
                 self._inputs.append(input)

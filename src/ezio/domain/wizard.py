@@ -32,6 +32,8 @@ def run_wizard(
     tile_source: Tilesource,
     progress: Progress,
     segment_info_source: SegmentInfoSource,
+    start_date: dt.date | None,
+    end_date: dt.date | None,
 ) -> None:
     """
     The wizard guides the user through the steps to generate the static website
@@ -39,14 +41,17 @@ def run_wizard(
 
     output_directory.create_directory_structure()
 
-    inputs = load_input_files(source_directory, track_loaders, progress)
+    inputs = load_input_files(
+        source_directory, track_loaders, progress, start_date, end_date
+    )
 
     segments: list[SegmentInfo] = []
 
     # group tracks by date
     tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
-    for taken_at, track in inputs.tracks:
-        date = taken_at.date()
+    for track_datetime, track in inputs.tracks:
+        date = track_datetime.date()
+
         if date not in tracks_by_date:
             tracks_by_date[date] = []
 
@@ -124,7 +129,7 @@ def run_wizard(
 
     # save data.json
     with open(output_directory.json_path, "w") as f:
-        _ = f.write(data.model_dump_json(indent=2))
+        f.write(data.model_dump_json(indent=2))
 
 
 @dataclass
@@ -148,17 +153,38 @@ def all_files(dir: Path) -> Iterable[Path]:
 
 
 def load_input_files(
-    input_dir: Path, loaders: Collection[TrackLoader], progress: Progress
+    input_dir: Path,
+    loaders: Collection[TrackLoader],
+    progress: Progress,
+    start_date: dt.date | None,
+    end_date: dt.date | None,
 ) -> Inputs:
     inputs = Inputs(photos=[], tracks=[])
+
+    loaded_tracks = 0
+    skipped_tracks = 0
 
     files = list(all_files(input_dir))
     for file_path in progress.track(files, "Loading input files"):
         for loader in loaders:
             tracks = loader.load_tracks(file_path)
             if tracks is not None:
+                for track in tracks:
+                    date = track[0].date()
+
+                    # Only keep tracks from dates in the selected range
+                    if start_date is not None and date < start_date:
+                        skipped_tracks += 1
+                        continue
+                    if end_date is not None and date > end_date:
+                        skipped_tracks += 1
+                        continue
+
+                    loaded_tracks += 1
+
+                    inputs.tracks.append(track)
+
                 # The track loader was successful, skip the remaining loaders
-                inputs.tracks.extend(tracks)
                 continue
 
         # if no track loader was successful, it might be a photo
@@ -168,6 +194,12 @@ def load_input_files(
             continue
 
         logger.debug(f"No loader accepted file {file_path}, we thus ignore the file.")
+
+    if start_date is not None or end_date is not None:
+        logger.info(
+            f"{skipped_tracks} tracks were skipped because they were outside the selected date range"
+        )
+    logger.info(f"Loaded {loaded_tracks} tracks")
 
     return inputs
 
@@ -187,7 +219,7 @@ def download_tiles(
 
         tile = tile_source.get_tile(tile_coord)
         with open(path, "wb") as f:
-            _ = f.write(tile)
+            f.write(tile)
 
 
 def merge_existing_segments(

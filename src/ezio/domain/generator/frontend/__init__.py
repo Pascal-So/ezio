@@ -45,8 +45,8 @@ def _copy_dist_contents_if_exists(
 
     # TODO: remove existing frontend files in output_directory?
 
-    _ = (dist_dir / "assets").copy_into(output_directory)
-    _ = (dist_dir / "index.html").copy_into(output_directory)
+    (dist_dir / "assets").copy_into(output_directory)
+    (dist_dir / "index.html").copy_into(output_directory)
 
     # TODO: replace title in the head of index.html with user provided title
 

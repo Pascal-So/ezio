@@ -6,7 +6,12 @@ from typing import override
 from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
-from ezio.domain.wizard import download_tiles, merge_existing_segments, run_wizard
+from ezio.domain.wizard import (
+    download_tiles,
+    load_input_files,
+    merge_existing_segments,
+    run_wizard,
+)
 from ezio.ports.progress import Progress
 from ezio.ports.segment_info_source import SegmentInfoSource
 
@@ -24,6 +29,8 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
         FakeTiles(),
         MockProgress(),
         MockSegmentInfoSource(descriptions),
+        None,
+        None,
     )
 
     # Check data.json
@@ -43,6 +50,40 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
         for photo in data.photos:
             assert (output_dir.thumbs_dir / photo.filename).is_file()
             assert (output_dir.photos_dir / photo.filename).is_file()
+
+
+def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
+    # expected number of track segments:
+    # 5 on 2022-10-07
+    # 1 on 2022-10-10
+    # 2 on 2022-10-11
+
+    inputs = load_input_files(
+        data_dir,
+        [GpxTrackLoader()],
+        MockProgress(),
+        start_date=dt.date(2022, 10, 11),
+        end_date=None,
+    )
+    assert len(inputs.tracks) == 2
+
+    inputs = load_input_files(
+        data_dir,
+        [GpxTrackLoader()],
+        MockProgress(),
+        start_date=dt.date(2022, 10, 7),
+        end_date=dt.date(2022, 10, 10),
+    )
+    assert len(inputs.tracks) == 6
+
+    inputs = load_input_files(
+        data_dir,
+        [GpxTrackLoader()],
+        MockProgress(),
+        start_date=None,
+        end_date=dt.date(2022, 10, 6),
+    )
+    assert len(inputs.tracks) == 0
 
 
 def test_tile_downloading_shows_up_in_progress_bar(tempdir: Path) -> None:
