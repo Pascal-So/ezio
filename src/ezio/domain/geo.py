@@ -94,13 +94,13 @@ def merge_bounding_boxes(bounding_boxes: list[BoundingBox]) -> BoundingBox:
 
 def compute_required_map_tiles(
     bbox: BoundingBox,
+    max_zoom_level: int,
 ) -> list[Tilecoord]:
     """
     The set of map tiles that we need to cover the area, across multiple zoom levels
     """
 
     min_zoom_level = 4
-    max_zoom_level = 9
     padding = 2.5
 
     tiles: list[Tilecoord] = []

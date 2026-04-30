@@ -48,4 +48,5 @@ export type Data = {
   backgroundSegments: SegmentGeometry[];
   stays: PointsGeometry | null;
   totalBoundingBox: BoundingBox;
+  maxZoomLevel: number;
 };

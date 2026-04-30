@@ -18,6 +18,7 @@ type MapViewProps = {
   setSelectedSegment: (id: number | null) => void;
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
+  maxZoom: number;
 };
 
 function boundingBoxCenter(bbox: BoundingBox): LatLng {
@@ -44,7 +45,7 @@ function MapView(props: MapViewProps) {
         center={boundingBoxCenter(props.totalBoundingBox)}
         zoom={8}
         minZoom={6}
-        maxZoom={9}
+        maxZoom={props.maxZoom}
         maxBounds={boundingBoxToLeaflet(props.totalBoundingBox, latLng(1, 1))}
       >
         <MapContents {...props} />
@@ -59,6 +60,7 @@ function MapContents({
   setSelectedSegment,
   backgroundSegments,
   stays,
+  maxZoom,
 }: MapViewProps) {
   const map = useMap();
 
@@ -66,6 +68,17 @@ function MapContents({
     // deselect segments when clicking on the background
     map.on("click", () => setSelectedSegment(null));
   }, [map]);
+
+  useEffect(() => {
+    // pan to selected segment when that changes
+    if (selectedSegment !== null) {
+      const bounds = boundingBoxToLeaflet(
+        segments[selectedSegment].boundingBox,
+        latLng(0, 0),
+      );
+      map.flyToBounds(bounds, { maxZoom: maxZoom });
+    }
+  }, [map, selectedSegment, segments]);
 
   return (
     <>

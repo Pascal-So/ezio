@@ -117,15 +117,17 @@ def run_wizard(
             photos=available_photos,
         )
 
+    max_zoom_level = 10
     data = Data(
         segments=segments,
         photos=photos,
         background_segments=[],
         total_bounding_box=total_bounding_box,
+        max_zoom_level=max_zoom_level,
     )
 
     # download map tiles
-    tile_coords = compute_required_map_tiles(total_bounding_box)
+    tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
 
     segment_info_source.add_descriptions(data.segments)

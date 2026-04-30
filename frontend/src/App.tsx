@@ -12,6 +12,7 @@ type AppProps = {
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
   totalBoundingBox: BoundingBox;
+  maxZoomLevel: number;
 };
 
 const App: FC<AppProps> = ({
@@ -20,6 +21,7 @@ const App: FC<AppProps> = ({
   backgroundSegments,
   stays,
   totalBoundingBox,
+  maxZoomLevel,
 }: AppProps) => {
   const [selectedSegment, setSelectedSegment] = useState<number | null>(0);
   const [imageIndex, setImageIndex] = useState<number | null>(null);
@@ -93,6 +95,7 @@ const App: FC<AppProps> = ({
         backgroundSegments={backgroundSegments}
         stays={stays}
         totalBoundingBox={totalBoundingBox}
+        maxZoom={maxZoomLevel}
       />
     </div>
   );

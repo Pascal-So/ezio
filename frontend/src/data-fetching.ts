@@ -67,6 +67,7 @@ export async function fetchAllData(): Promise<Data> {
     backgroundSegments,
     stays,
     totalBoundingBox: data.totalBoundingBox,
+    maxZoomLevel: data.maxZoomLevel,
   };
 }
 
@@ -105,6 +106,7 @@ function parseData(raw: any): JsonData {
     photos: z.array(photoInfoSchema),
     background_segments: z.optional(z.array(z.string())),
     total_bounding_box: boundingBoxSchema,
+    max_zoom_level: z.number(),
   });
 
   const parsed = schema.parse(raw);
@@ -129,6 +131,7 @@ function parseData(raw: any): JsonData {
     })),
     backgroundSegments: parsed.background_segments || [],
     totalBoundingBox: convertBoundingBox(parsed.total_bounding_box),
+    maxZoomLevel: parsed.max_zoom_level,
   };
 }
 
@@ -178,4 +181,5 @@ type JsonData = {
   photos: PhotoInfo[];
   backgroundSegments: string[];
   totalBoundingBox: BoundingBox;
+  maxZoomLevel: number;
 };
