@@ -24,12 +24,12 @@ def main() -> None:
         logger.error(str(e))
         exit(2)
 
-    FORMAT = "%(message)s"
     logging.basicConfig(
-        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+        level="DEBUG" if args.verbose else "INFO",
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler()],
     )
-
-    # todo: logging config with level=os.environ.get('LOGLEVEL', 'INFO').upper()
 
     tile_source = Jawg()
     # tile_source = FakeTiles()
@@ -59,6 +59,7 @@ class Args:
     output_directory: OutputDirectory
     start_date: dt.date | None
     end_date: dt.date | None
+    verbose: bool
 
 
 def _parse_args() -> Args:
@@ -70,6 +71,7 @@ def _parse_args() -> Args:
     parser.add_argument("-o", "--output", required=True, type=str)
     parser.add_argument("--start-date", required=False, type=str)
     parser.add_argument("--end-date", required=False, type=str)
+    parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
 
@@ -93,4 +95,5 @@ def _parse_args() -> Args:
         output_directory=OutputDirectory(args.output),
         start_date=start_date,
         end_date=end_date,
+        verbose=args.verbose,
     )

@@ -39,8 +39,6 @@ def run_wizard(
     The wizard guides the user through the steps to generate the static website
     """
 
-    output_directory.create_directory_structure()
-
     inputs = load_input_files(
         source_directory, track_loaders, progress, start_date, end_date
     )
@@ -86,6 +84,8 @@ def run_wizard(
                 bounding_box=bbox,
             )
         )
+
+    output_directory.create_directory_structure()
 
     write_geojson_files(output_directory, tracks_by_date)
 
@@ -159,6 +159,9 @@ def load_input_files(
     start_date: dt.date | None,
     end_date: dt.date | None,
 ) -> Inputs:
+    if not input_dir.is_dir():
+        raise Exception(f"The input directory {input_dir} does not exist")
+
     inputs = Inputs(photos=[], tracks=[])
 
     loaded_tracks = 0
