@@ -1,6 +1,6 @@
 import type { FeatureCollection, MultiLineString, Point } from "geojson";
 import L, { LatLng, latLng, LatLngBounds, latLngBounds } from "leaflet";
-import { useEffect } from "react";
+import { useEffect, useImperativeHandle, type Ref } from "react";
 import {
   TileLayer,
   MapContainer,
@@ -11,6 +11,8 @@ import {
 
 import type { BoundingBox, Segment, SegmentGeometry } from "../types";
 
+export type PannableMap = { panTo: (segmentIndex: number) => void };
+
 type MapViewProps = {
   segments: Segment[];
   totalBoundingBox: BoundingBox;
@@ -19,6 +21,7 @@ type MapViewProps = {
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
   maxZoom: number;
+  ref: Ref<PannableMap>;
 };
 
 function boundingBoxCenter(bbox: BoundingBox): LatLng {
@@ -46,7 +49,7 @@ function MapView(props: MapViewProps) {
         zoom={8}
         minZoom={6}
         maxZoom={props.maxZoom}
-        maxBounds={boundingBoxToLeaflet(props.totalBoundingBox, latLng(1, 1))}
+        maxBounds={boundingBoxToLeaflet(props.totalBoundingBox, latLng(2, 2))}
       >
         <MapContents {...props} />
       </MapContainer>
@@ -61,6 +64,7 @@ function MapContents({
   backgroundSegments,
   stays,
   maxZoom,
+  ref,
 }: MapViewProps) {
   const map = useMap();
 
@@ -69,16 +73,21 @@ function MapContents({
     map.on("click", () => setSelectedSegment(null));
   }, [map]);
 
-  useEffect(() => {
-    // pan to selected segment when that changes
-    if (selectedSegment !== null) {
-      const bounds = boundingBoxToLeaflet(
-        segments[selectedSegment].boundingBox,
-        latLng(0, 0),
-      );
-      map.flyToBounds(bounds, { maxZoom: maxZoom });
-    }
-  }, [map, selectedSegment, segments]);
+  useImperativeHandle(ref, () => {
+    return {
+      // add an imperative method to MapView refs for panning to a segment
+      panTo(segmentIndex) {
+        const bounds = boundingBoxToLeaflet(
+          segments[segmentIndex].boundingBox,
+          latLng(0, 0),
+        );
+        map.flyToBounds(bounds, {
+          maxZoom: maxZoom,
+          duration: 0.5,
+        });
+      },
+    };
+  }, [segments, map]);
 
   return (
     <>

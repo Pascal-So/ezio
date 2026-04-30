@@ -6,7 +6,7 @@ body {
 
   --yarl__thumbnails_container_padding: 6px;
 
-  --yarl__container_background_color: #000c;
+  --yarl__container_background_color: #000b;
   --yarl__thumbnails_container_background_color: var(
     --yarl__container_background_color
   );
