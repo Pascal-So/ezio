@@ -73,7 +73,7 @@ class SegmentInfoApp(App[bool]):
                     yield Label(f"Date {seg.date.strftime('%Y-%m-%d')}", classes="date")
                     yield Label(f"{seg.dist_km:.3f} km")
 
-                input = Input(placeholder="Description")
+                input = Input(value=seg.description, placeholder="Description")
                 self._inputs.append(input)
                 yield input
                 # yield Input(seg.featured_photo)

@@ -26,14 +26,38 @@ export async function fetchAllData(): Promise<Data> {
   const segments: Segment[] = [];
 
   let idx = 0;
-  for (const segment of data.segments) {
-    segments.push({
-      ...segment,
-      imageIndex: data.photos.findIndex(
-        (photo) => photo.filename === segment.featuredPhotoFilename,
-      ),
+  for (const segmentInfo of data.segments) {
+    let imageIndex = null;
+    // find the featured photo for this segment
+    // TODO: avoid the n^2
+    if (segmentInfo.featuredPhotoFilename !== null) {
+      imageIndex = data.photos.findIndex(
+        (photo) => photo.filename === segmentInfo.featuredPhotoFilename,
+      );
+    }
+
+    // If no featured photo has been set, we default to the first
+    // photo of that day.
+    if (imageIndex === null || imageIndex === -1) {
+      imageIndex = data.photos.findIndex(
+        (photo) => photo.date === segmentInfo.date,
+      );
+    }
+
+    if (imageIndex === -1) {
+      imageIndex = null;
+    }
+
+    let segment = {
+      ...segmentInfo,
+      imageIndex,
       geometry: geojsons[idx],
-    });
+    };
+    if (imageIndex !== null) {
+      segment.featuredPhotoFilename = data.photos[imageIndex].filename;
+    }
+
+    segments.push(segment);
     idx += 1;
   }
 
@@ -73,7 +97,7 @@ function parseData(raw: any): JsonData {
     description: z.optional(z.string()),
     dist_km: z.number(),
     climb_m: z.optional(z.number()),
-    featured_photo: z.optional(z.string()),
+    featured_photo: z.nullable(z.string()),
     bounding_box: boundingBoxSchema,
   });
   const schema = z.object({
@@ -94,7 +118,7 @@ function parseData(raw: any): JsonData {
       description: seg.description || "",
       dist: seg.dist_km,
       climb: seg.climb_m,
-      featuredPhotoFilename: seg.featured_photo || "",
+      featuredPhotoFilename: seg.featured_photo || null,
       boundingBox: convertBoundingBox(seg.bounding_box),
     })),
     photos: parsed.photos.map((photo) => ({

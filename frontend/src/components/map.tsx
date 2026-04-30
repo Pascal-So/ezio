@@ -72,7 +72,6 @@ function MapContents({
       <LayerGroup
         eventHandlers={{
           click: () => {
-            console.log("bgclick");
             setSelectedSegment(null);
           },
         }}

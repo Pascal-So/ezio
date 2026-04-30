@@ -84,16 +84,16 @@ def _parse_args() -> Args:
         except ValueError:
             raise Exception(f"Date {which} is not in format YYYY-MM-DD: {date}")
 
-    start_date = parse_date(args.start_date, "start-date")
-    end_date = parse_date(args.end_date, "end-date")
+    start_date = parse_date(args.start_date, "start-date")  # pyright:ignore[reportAny]
+    end_date = parse_date(args.end_date, "end-date")  # pyright:ignore[reportAny]
 
     if start_date is not None and end_date is not None and start_date > end_date:
         raise Exception(f"Start date {start_date} is after end date {end_date}")
 
     return Args(
-        input_dir=Path(args.input),
-        output_directory=OutputDirectory(args.output),
+        input_dir=Path(args.input),  # pyright:ignore[reportAny]
+        output_directory=OutputDirectory(args.output),  # pyright:ignore[reportAny]
         start_date=start_date,
         end_date=end_date,
-        verbose=args.verbose,
+        verbose=args.verbose,  # pyright:ignore[reportAny]
     )

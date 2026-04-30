@@ -16,14 +16,11 @@ function InfoOverlay({
   moveToPrevSegment,
   openPhotoGallery,
 }: InfoOverlayProps) {
-  const featuredPhotoPath = thumbnailPath(segment.featuredPhotoFilename);
-
   return (
     <div className="shadow-lg flex flex-col max-w-60 bg-slate-100 rounded-lg absolute z-[1000] bottom-3 left-3 overflow-hidden">
-      <img
-        className="w-full"
-        onClick={openPhotoGallery}
-        src={featuredPhotoPath}
+      <InfoOverlayPhoto
+        featuredPhotoFilename={segment.featuredPhotoFilename}
+        openPhotoGallery={openPhotoGallery}
       />
 
       <div className="p-2">
@@ -62,6 +59,33 @@ function InfoOverlay({
         </div>
       </div>
     </div>
+  );
+}
+
+type InfoOverlayPhotoProps = {
+  featuredPhotoFilename: string | null;
+  openPhotoGallery: () => void;
+};
+
+function InfoOverlayPhoto({
+  featuredPhotoFilename,
+  openPhotoGallery,
+}: InfoOverlayPhotoProps) {
+  if (featuredPhotoFilename === null) {
+    return (
+      <div className="w-full aspect-video flex items-center justify-center text-slate-600">
+        <span>No photos on this day</span>
+      </div>
+    );
+  }
+
+  const featuredPhotoPath = thumbnailPath(featuredPhotoFilename);
+  return (
+    <img
+      className="w-full"
+      onClick={openPhotoGallery}
+      src={featuredPhotoPath}
+    />
   );
 }
 

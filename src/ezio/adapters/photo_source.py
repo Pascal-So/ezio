@@ -55,15 +55,34 @@ def _get_date_taken(image: Image.Image, photo_file_path: Path) -> dt.datetime | 
 
     if taken_at is None:
         return None
-
     taken_at_str = f"{taken_at}{offset or ''}"
-    try:
-        return dt.datetime.strptime(taken_at_str, "%Y:%m:%d %H:%M:%S%z")
-    except ValueError:
-        logger.warning(
-            f"photo {photo_file_path} contains invalid datetime {taken_at} with offset {offset}"
-        )
-        return None
+
+    if offset is None:
+        try:
+            # parsing without timezone
+            datetime = dt.datetime.strptime(taken_at_str, "%Y:%m:%d %H:%M:%S")
+            logger.info(
+                f"found photo {photo_file_path} with capture time {taken_at_str} (no time zone specified)"
+            )
+            return datetime
+        except ValueError:
+            logger.warning(
+                f"photo {photo_file_path} contains invalid datetime {taken_at}"
+            )
+            return None
+    else:
+        try:
+            # parsing with timezone
+            datetime = dt.datetime.strptime(taken_at_str, "%Y:%m:%d %H:%M:%S%z")
+            logger.info(
+                f"found photo {photo_file_path} with capture time {taken_at_str}"
+            )
+            return datetime
+        except ValueError:
+            logger.warning(
+                f"photo {photo_file_path} contains invalid datetime {taken_at} with offset {offset}"
+            )
+            return None
 
 
 def _get_with_fallback[T](exif: dict[int, T], *key: int) -> T | None:

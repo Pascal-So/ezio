@@ -23,14 +23,18 @@ TODO
 This program currently assumes that the following constraints hold. The output
 is undefined if the data does not follow these constraints.
 
-* Every single route recording must not extend across midnight in the active timezone.
-* Every day with a route recording must have at least one photo taken on that day.
+* Route recordings must not extend across midnight in the active time zone.
 * The combined route must not cross the ±180° longitude line.
-* The combined route must not cross a timezone boundary.
+* The combined route must not cross a time zone boundary.
 * The viewer currently highlights route segments by day. No other grouping type
   (weeks / custom / etc.) is currently possible.
 
 Some of these constraints might be relaxed in the future if the need arises.
+
+Note also that time zone handling is tricky for photos because some cameras
+store the capture time in local time but don't add time zone information. Feel
+free to open an issue if you think that the current handling of times does not
+work for your use case or could be improved.
 
 ## License
 

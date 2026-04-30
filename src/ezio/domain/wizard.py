@@ -8,6 +8,7 @@ from pydantic_geojson import LineStringModel
 
 from ezio.adapters.photo_source import load_photo  # todo: put this behind a port
 from ezio.domain.generator import write_geojson_files
+from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.photos import save_photo
 from ezio.domain.geo import (
     bounding_box,
@@ -42,6 +43,7 @@ def run_wizard(
     inputs = load_input_files(
         source_directory, track_loaders, progress, start_date, end_date
     )
+    inputs.photos.sort()
 
     segments: list[SegmentInfo] = []
 
@@ -80,7 +82,7 @@ def run_wizard(
                 description="",
                 dist_km=distance_km,
                 climb_m=climb_m,
-                featured_photo="",
+                featured_photo=None,
                 bounding_box=bbox,
             )
         )
@@ -93,15 +95,16 @@ def run_wizard(
 
     photos: list[PhotoInfo] = []
 
-    # convert and resize images
-    for taken_at, photo in inputs.photos:
-        # TODO: progress bar
+    # convert and resize photos
+    for taken_at, photo in progress.track(
+        inputs.photos, "Converting and resizing photos"
+    ):
         photo_info = save_photo(output_directory, photo, taken_at)
         photos.append(photo_info)
 
     if output_directory.json_path.is_file():
         logger.info(
-            f"Existing data found in {output_directory.json_path}, merging with new data..."
+            f"Existing data found in {output_directory.json_path}, merging with new data"
         )
 
         with open(output_directory.json_path) as f:
@@ -130,6 +133,9 @@ def run_wizard(
     # save data.json
     with open(output_directory.json_path, "w") as f:
         f.write(data.model_dump_json(indent=2))
+
+    # add the frontend to the output directory
+    copy_frontend(output_directory)
 
 
 @dataclass
@@ -166,6 +172,7 @@ def load_input_files(
 
     loaded_tracks = 0
     skipped_tracks = 0
+    track_files = 0
 
     files = list(all_files(input_dir))
     for file_path in progress.track(files, "Loading input files"):
@@ -188,6 +195,7 @@ def load_input_files(
                     inputs.tracks.append(track)
 
                 # The track loader was successful, skip the remaining loaders
+                track_files += 1
                 continue
 
         # if no track loader was successful, it might be a photo
@@ -202,7 +210,7 @@ def load_input_files(
         logger.info(
             f"{skipped_tracks} tracks were skipped because they were outside the selected date range"
         )
-    logger.info(f"Loaded {loaded_tracks} tracks")
+    logger.info(f"Loaded {loaded_tracks} tracks from {track_files} files")
 
     return inputs
 
