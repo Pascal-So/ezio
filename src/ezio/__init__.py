@@ -4,6 +4,8 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+from rich.logging import RichHandler
+
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.adapters.jawg import Jawg
 from ezio.adapters.rich_progress import RichProgress
@@ -21,6 +23,11 @@ def main() -> None:
         logger.error("Could not parse arguments")
         logger.error(str(e))
         exit(2)
+
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    )
 
     # todo: logging config with level=os.environ.get('LOGLEVEL', 'INFO').upper()
 
