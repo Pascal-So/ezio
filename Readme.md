@@ -16,7 +16,36 @@ to see a pretty map of it? Pretty much the same thing if you ask me.
 
 ## Usage
 
-TODO
+This tool takes photos and routes as input. All input files should be placed
+in an input directory. The tool will check all files in the input directory
+including subdirectories, ignore unrecognized files, and load photos and route
+data. Only [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) files are
+supported for route data for now.
+
+```bash
+# Assuming that ./input-directory/ contains your photos and .gpx files
+ezio -i input-directory -o output-directory
+```
+
+If your GPX files contain more recordings than just the route you want to
+display, then you can limit the date range with the following options:
+
+```bash
+ezio -i input-directory -o output-directory --start-date 2026-04-21 --end-date 2026-04-23
+```
+
+The above commands will generate a static website in the output directory, which
+you can now copy to your server. Note that the website doesn't work when using
+the `file://` protocol, i.e. you cannot just double click the `index.html` file
+to open it in your browser.
+
+```bash
+# start up a quick webserver to see the result
+cd output-directory
+python -m http.server
+
+# now open http://localhost:8000 in your browser
+```
 
 ## Limitations
 
