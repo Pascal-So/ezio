@@ -1,6 +1,6 @@
 # Maintainer: Pascal Sommer
 pkgname=ezio
-pkgver=0.0.1
+pkgver=0.1.0
 pkgrel=1
 pkgdesc="Static site generator for GPS routes"
 arch=(any)
@@ -32,8 +32,8 @@ source=(
     "https://github.com/gb-libs/pydantic-geojson/archive/refs/tags/${_geojson_version}.tar.gz"
 )
 sha256sums=(
-    "e106b96ad28aa44ffc411ef181ba9322c3e7b7bf69e82dded31a8b5de78b377e"
-    "6980d507e114959ce80fedfad671063b25bf3605f44cf799f6e07dc4735c6f52"
+    "c1fb3ae167710001a8bc8f827dc73a319ee0ebab8c1f18afb47b45a8f675d94c"
+    "2c4daff88949e5a749c16c028c4b3ee451583a1185bea8034405cf26ee6721d0"
     "3957a8c532885c9843430b4ba1fe705e5a3a0f35a405eb318c4f459f7b36b61a"
 )
 
