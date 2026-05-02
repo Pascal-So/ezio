@@ -8,6 +8,7 @@ from pydantic_geojson import LineStringModel
 
 from ezio.adapters.photo_source import load_photo  # todo: put this behind a port
 from ezio.domain.generator import write_geojson_files
+from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.photos import save_photo
 from ezio.domain.geo import (
     bounding_box,
@@ -16,8 +17,9 @@ from ezio.domain.geo import (
     merge_bounding_boxes,
     track_length_km,
 )
-from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
+from ezio.domain.model import Data, OutputDirectory, PhotoInfo, SegmentInfo, Tilecoord
 from ezio.ports.progress import Progress
+from ezio.ports.segment_info_source import SegmentInfoSource
 from ezio.ports.tilesource import Tilesource
 from ezio.ports.tracksource import TrackLoader
 
@@ -30,21 +32,27 @@ def run_wizard(
     track_loaders: Collection[TrackLoader],
     tile_source: Tilesource,
     progress: Progress,
+    segment_info_source: SegmentInfoSource,
+    start_date: dt.date | None,
+    end_date: dt.date | None,
+    title: str | None,
 ) -> None:
     """
     The wizard guides the user through the steps to generate the static website
     """
 
-    output_directory.create_directory_structure()
-
-    inputs = load_input_files(source_directory, track_loaders, progress)
+    inputs = load_input_files(
+        source_directory, track_loaders, progress, start_date, end_date
+    )
+    sort_photos(inputs.photos)
 
     segments: list[SegmentInfo] = []
 
     # group tracks by date
     tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
-    for taken_at, track in inputs.tracks:
-        date = taken_at.date()
+    for track_datetime, track in inputs.tracks:
+        date = track_datetime.date()
+
         if date not in tracks_by_date:
             tracks_by_date[date] = []
 
@@ -75,40 +83,62 @@ def run_wizard(
                 description="",
                 dist_km=distance_km,
                 climb_m=climb_m,
-                featured_photo="",
+                featured_photo=None,
                 bounding_box=bbox,
             )
         )
+
+    output_directory.create_directory_structure()
 
     write_geojson_files(output_directory, tracks_by_date)
 
     total_bounding_box = merge_bounding_boxes([seg.bounding_box for seg in segments])
 
-    # TODO: if data already exists then we load it from disk and skip to the
-    # data input section
+    photos: list[PhotoInfo] = []
+
+    # convert and resize photos
+    for taken_at, photo in progress.track(
+        inputs.photos, "Converting and resizing photos"
+    ):
+        photo_info = save_photo(output_directory, photo, taken_at)
+        photos.append(photo_info)
+
+    if output_directory.json_path.is_file():
+        logger.info(
+            f"Existing data found in {output_directory.json_path}, merging with new data"
+        )
+
+        with open(output_directory.json_path) as f:
+            existing_data = Data.model_validate_json(f.read())
+
+        available_photos = {photo.filename for photo in photos}
+        merge_existing_segments(
+            existing_segments=existing_data.segments,
+            new_segments=segments,
+            photos=available_photos,
+        )
+
+    max_zoom_level = 10
     data = Data(
         segments=segments,
-        photos=[],
+        photos=photos,
         background_segments=[],
         total_bounding_box=total_bounding_box,
+        max_zoom_level=max_zoom_level,
     )
 
-    # convert and resize images
-    for taken_at, photo in inputs.photos:
-        # TODO: progress bar
-        photo_info = save_photo(output_directory, photo, taken_at)
-        data.photos.append(photo_info)
-
     # download map tiles
-    tile_coords = compute_required_map_tiles(total_bounding_box)
+    tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
 
-    # TODO: data input section where we ask the user for segment names
-    # and segment featured photos
+    segment_info_source.add_descriptions(data.segments)
 
     # save data.json
     with open(output_directory.json_path, "w") as f:
-        _ = f.write(data.model_dump_json(indent=2))
+        f.write(data.model_dump_json(indent=2))
+
+    # add the frontend to the output directory
+    copy_frontend(output_directory, title)
 
 
 @dataclass
@@ -132,17 +162,43 @@ def all_files(dir: Path) -> Iterable[Path]:
 
 
 def load_input_files(
-    input_dir: Path, loaders: Collection[TrackLoader], progress: Progress
+    input_dir: Path,
+    loaders: Collection[TrackLoader],
+    progress: Progress,
+    start_date: dt.date | None,
+    end_date: dt.date | None,
 ) -> Inputs:
+    if not input_dir.is_dir():
+        raise Exception(f"The input directory {input_dir} does not exist")
+
     inputs = Inputs(photos=[], tracks=[])
+
+    loaded_tracks = 0
+    skipped_tracks = 0
+    track_files = 0
 
     files = list(all_files(input_dir))
     for file_path in progress.track(files, "Loading input files"):
         for loader in loaders:
             tracks = loader.load_tracks(file_path)
             if tracks is not None:
+                for track in tracks:
+                    date = track[0].date()
+
+                    # Only keep tracks from dates in the selected range
+                    if start_date is not None and date < start_date:
+                        skipped_tracks += 1
+                        continue
+                    if end_date is not None and date > end_date:
+                        skipped_tracks += 1
+                        continue
+
+                    loaded_tracks += 1
+
+                    inputs.tracks.append(track)
+
                 # The track loader was successful, skip the remaining loaders
-                inputs.tracks.extend(tracks)
+                track_files += 1
                 continue
 
         # if no track loader was successful, it might be a photo
@@ -152,6 +208,12 @@ def load_input_files(
             continue
 
         logger.debug(f"No loader accepted file {file_path}, we thus ignore the file.")
+
+    if start_date is not None or end_date is not None:
+        logger.info(
+            f"{skipped_tracks} tracks were skipped because they were outside the selected date range"
+        )
+    logger.info(f"Loaded {loaded_tracks} tracks from {track_files} files")
 
     return inputs
 
@@ -171,4 +233,56 @@ def download_tiles(
 
         tile = tile_source.get_tile(tile_coord)
         with open(path, "wb") as f:
-            _ = f.write(tile)
+            f.write(tile)
+
+
+def merge_existing_segments(
+    existing_segments: list[SegmentInfo],
+    new_segments: list[SegmentInfo],
+    photos: Collection[str],
+) -> None:
+    """
+    Merge existing segment information from a previous generator run into the
+    new list of segments from this run.
+
+    This modifies the list `new_segments`
+    """
+
+    existing_segments_dict = {seg.date: seg for seg in existing_segments}
+
+    for seg in new_segments:
+        existing_seg = existing_segments_dict.get(seg.date)
+        if existing_seg is None:
+            continue
+
+        seg.description = existing_seg.description
+        if existing_seg.featured_photo in photos:
+            seg.featured_photo = existing_seg.featured_photo
+
+
+def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
+    """
+    Best-effort sorting of photos by datetime, dealing with various
+    time zone shennanigans.
+    """
+
+    timezones = {datetime.utcoffset() for (datetime, _) in photos}
+
+    if len(timezones) <= 1:
+        # All photos have the same time zone information, just sort directly.
+        photos.sort()
+        return
+
+    if None in timezones:
+        # Some photos don't have a time zone set, let's just use local time
+        # for everything
+        logger.warning(
+            "sorting photos by directly comparing local times, ignoring time zone info"
+        )
+        photos.sort(key=lambda p: p[0].replace(tzinfo=None))
+        return
+
+    # Otherwise we have photos which all have time zone info, but not all photos
+    # are from the same time zone
+    logger.warning(f"Not all photos are from the same time zone: {timezones}")
+    photos.sort()

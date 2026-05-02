@@ -29,7 +29,7 @@ class GpxTrackLoader(TrackLoader):
                 gpx = gpxpy.parse(gpx_file)
 
         except Exception as e:
-            logger.warning(f"Skipping gpx file {file_path.name} due to error: {e}")
+            logger.warning(f"Skipping GPX file {file_path.name} due to error: {e}")
             return None
 
         logger.info(f"Reading {file_path.name}")
@@ -62,6 +62,7 @@ class GpxTrackLoader(TrackLoader):
                 linestring = _segment_to_linestring(segment)
                 linestrings.append((track_date, linestring))
 
+        logger.info(f"Read {len(gpx.tracks)} tracks with {len(linestrings)} segments")
         return linestrings
 
 

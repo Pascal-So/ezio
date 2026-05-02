@@ -1,9 +1,15 @@
-import { type FC, type KeyboardEvent, useCallback, useState } from "react";
+import {
+  type FC,
+  type KeyboardEvent,
+  useCallback,
+  useState,
+  useRef,
+} from "react";
 import type { FeatureCollection, MultiLineString, Point } from "geojson";
 
 import type { BoundingBox, PhotoInfo, Segment } from "./types";
 import InfoOverlay from "./components/info-overlay";
-import MapView from "./components/map";
+import MapView, { type PannableMap } from "./components/map";
 import PhotoGallery from "./components/photo-gallery";
 
 type AppProps = {
@@ -12,6 +18,7 @@ type AppProps = {
   backgroundSegments: FeatureCollection<MultiLineString>[];
   stays: FeatureCollection<Point> | null;
   totalBoundingBox: BoundingBox;
+  maxZoomLevel: number;
 };
 
 const App: FC<AppProps> = ({
@@ -20,9 +27,11 @@ const App: FC<AppProps> = ({
   backgroundSegments,
   stays,
   totalBoundingBox,
+  maxZoomLevel,
 }: AppProps) => {
   const [selectedSegment, setSelectedSegment] = useState<number | null>(0);
   const [imageIndex, setImageIndex] = useState<number | null>(null);
+  const mapRef = useRef<PannableMap>(null);
 
   const move = useCallback(
     (offset: number) => () => {
@@ -63,12 +72,15 @@ const App: FC<AppProps> = ({
     const segment = segments.findIndex((s) => s.date === date);
     if (segment !== -1) {
       setSelectedSegment(segment);
+      if (mapRef.current) {
+        mapRef.current.panTo(segment);
+      }
     }
   }
 
   return (
     <div onKeyDown={keyDown}>
-      {selectedSegment !== null ? (
+      {selectedSegment !== null && imageIndex === null ? (
         <InfoOverlay
           openPhotoGallery={() =>
             setImageIndex(segments[selectedSegment].imageIndex)
@@ -93,6 +105,8 @@ const App: FC<AppProps> = ({
         backgroundSegments={backgroundSegments}
         stays={stays}
         totalBoundingBox={totalBoundingBox}
+        maxZoom={maxZoomLevel}
+        ref={mapRef}
       />
     </div>
   );

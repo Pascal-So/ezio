@@ -21,6 +21,7 @@ try {
         backgroundSegments={data.backgroundSegments}
         stays={data.stays}
         totalBoundingBox={data.totalBoundingBox}
+        maxZoomLevel={data.maxZoomLevel}
       />
     </StrictMode>,
   );

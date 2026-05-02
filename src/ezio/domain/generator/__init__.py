@@ -32,4 +32,4 @@ def write_geojson_files(
         geojson: str = collection.model_dump_json(indent=None)
 
         with open(output_directory.tracks_dir / filename, "w") as f:
-            _ = f.write(geojson)
+            f.write(geojson)

@@ -8,3 +8,7 @@ class Tilesource(ABC):
     def get_tile(self, coord: Tilecoord) -> Tile:
         """Request a single map tile"""
         ...
+
+
+# TODO: stadiamaps, mapbox, carto, etc. client?
+# TODO: generic client which just takes a config string in https://tile.openstreetmap.org/{z}/{x}/{y}.png format?

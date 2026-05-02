@@ -1,7 +1,7 @@
 import datetime as dt
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from ezio.domain.model import OutputDirectory, PhotoInfo, Resolution
 
@@ -14,6 +14,10 @@ def save_photo(
     new_filename: str = taken_at.strftime("%Y-%m-%d-%H-%M-%S") + ".webp"
 
     photo = Image.open(photo_path)
+
+    # apply exif orientation
+    ImageOps.exif_transpose(photo, in_place=True)
+
     orig_res = Resolution(x=photo.width, y=photo.height)
 
     # save the large version of the image

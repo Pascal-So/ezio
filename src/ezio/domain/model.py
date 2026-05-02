@@ -53,6 +53,7 @@ class Data(BaseModel):
     photos: list[PhotoInfo]
     background_segments: list[str]
     total_bounding_box: BoundingBox
+    max_zoom_level: int
 
 
 class OutputDirectory(Path):

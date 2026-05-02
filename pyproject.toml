@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-geojson>=0.3.2",
     "requests>=2.33.0",
     "rich>=14.3.3",
+    "textual>=8.2.3",
 ]
 
 [project.scripts]
@@ -28,5 +29,9 @@ dev = [
     "mypy>=1.19.1",
     "pytest>=9.0.2",
     "ruff>=0.15.8",
+    "textual-dev>=1.8.0",
     "types-requests>=2.33.0.20260327",
 ]
+
+[tool.pyright]
+reportUnusedCallResult = "none"

@@ -32,6 +32,7 @@ function PhotoGallery({
       }}
       on={{
         view({ index }) {
+          setImageIndex(index);
           selectSegmentByDate(photos[index].date);
         },
       }}
@@ -47,6 +48,7 @@ function PhotoGallery({
         width: 70,
         height: (160 * 70) / 250,
         padding: 0,
+        vignette: false,
       }}
     ></Lightbox>
   );

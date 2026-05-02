@@ -4,7 +4,7 @@ export type SegmentGeometry = FeatureCollection<MultiLineString>;
 export type PointsGeometry = FeatureCollection<Point>;
 
 export type Segment = SegmentInfo & {
-  imageIndex: number;
+  imageIndex: number | null;
   geometry: SegmentGeometry;
 };
 
@@ -18,7 +18,7 @@ export type SegmentInfo = {
   /** Climb in metres*/
   climb: number | undefined;
 
-  featuredPhotoFilename: string;
+  featuredPhotoFilename: string | null;
 
   boundingBox: BoundingBox;
 };
@@ -48,4 +48,5 @@ export type Data = {
   backgroundSegments: SegmentGeometry[];
   stays: PointsGeometry | null;
   totalBoundingBox: BoundingBox;
+  maxZoomLevel: number;
 };

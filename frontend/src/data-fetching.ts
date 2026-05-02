@@ -25,15 +25,44 @@ export async function fetchAllData(): Promise<Data> {
 
   const segments: Segment[] = [];
 
+  const photoIndexByFilename = new Map<string, number>();
+  for (const [index, photo] of data.photos.entries()) {
+    photoIndexByFilename.set(photo.filename, index);
+  }
+
+  const firstPhotoIndexByDate = new Map<string, number>();
+  for (const [index, photo] of data.photos.entries()) {
+    if (!firstPhotoIndexByDate.has(photo.date)) {
+      firstPhotoIndexByDate.set(photo.date, index);
+    }
+  }
+
   let idx = 0;
-  for (const segment of data.segments) {
-    segments.push({
-      ...segment,
-      imageIndex: data.photos.findIndex(
-        (photo) => photo.filename === segment.featuredPhotoFilename,
-      ),
+  for (const segmentInfo of data.segments) {
+    let imageIndex: number | null = null;
+
+    // find the featured photo for this segment
+    if (segmentInfo.featuredPhotoFilename !== null) {
+      imageIndex =
+        photoIndexByFilename.get(segmentInfo.featuredPhotoFilename) ?? null;
+    }
+
+    // If no featured photo has been set, we default to the first
+    // photo of that day.
+    if (imageIndex === null) {
+      imageIndex = firstPhotoIndexByDate.get(segmentInfo.date) ?? null;
+    }
+
+    let segment = {
+      ...segmentInfo,
+      imageIndex,
       geometry: geojsons[idx],
-    });
+    };
+    if (imageIndex !== null) {
+      segment.featuredPhotoFilename = data.photos[imageIndex].filename;
+    }
+
+    segments.push(segment);
     idx += 1;
   }
 
@@ -43,6 +72,7 @@ export async function fetchAllData(): Promise<Data> {
     backgroundSegments,
     stays,
     totalBoundingBox: data.totalBoundingBox,
+    maxZoomLevel: data.maxZoomLevel,
   };
 }
 
@@ -73,7 +103,7 @@ function parseData(raw: any): JsonData {
     description: z.optional(z.string()),
     dist_km: z.number(),
     climb_m: z.optional(z.number()),
-    featured_photo: z.optional(z.string()),
+    featured_photo: z.nullable(z.string()),
     bounding_box: boundingBoxSchema,
   });
   const schema = z.object({
@@ -81,6 +111,7 @@ function parseData(raw: any): JsonData {
     photos: z.array(photoInfoSchema),
     background_segments: z.optional(z.array(z.string())),
     total_bounding_box: boundingBoxSchema,
+    max_zoom_level: z.number(),
   });
 
   const parsed = schema.parse(raw);
@@ -94,7 +125,7 @@ function parseData(raw: any): JsonData {
       description: seg.description || "",
       dist: seg.dist_km,
       climb: seg.climb_m,
-      featuredPhotoFilename: seg.featured_photo || "",
+      featuredPhotoFilename: seg.featured_photo || null,
       boundingBox: convertBoundingBox(seg.bounding_box),
     })),
     photos: parsed.photos.map((photo) => ({
@@ -105,6 +136,7 @@ function parseData(raw: any): JsonData {
     })),
     backgroundSegments: parsed.background_segments || [],
     totalBoundingBox: convertBoundingBox(parsed.total_bounding_box),
+    maxZoomLevel: parsed.max_zoom_level,
   };
 }
 
@@ -154,4 +186,5 @@ type JsonData = {
   photos: PhotoInfo[];
   backgroundSegments: string[];
   totalBoundingBox: BoundingBox;
+  maxZoomLevel: number;
 };
