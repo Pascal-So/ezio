@@ -36,7 +36,7 @@ build-arch-package:
     cd $TMPDIR
     makepkg -s
 
-    echo The package is located in $PWD/ezio*.tar.zst
+    echo The package is located in $PWD/ezio*.pkg.tar.zst
 
 # Remove all build artifacts and caches
 [confirm]

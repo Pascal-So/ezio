@@ -13,6 +13,7 @@ depends=(
     python-requests
     python-rich
     python-pydantic
+    python-textual
 )
 makedepends=(
     python-build
