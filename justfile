@@ -28,6 +28,16 @@ build-wheel: build-frontend
     cp -r frontend/dist/assets frontend/dist/index.html "{{ frontend-path-in-package }}"
     uv build --verbose --wheel
 
+# Build the arch package based on a GitHub release. Edit PKGBUILD to bump the version
+build-arch-package:
+    #!/usr/bin/env bash
+    TMPDIR=$(mktemp -d)
+    cp PKGBUILD $TMPDIR
+    cd $TMPDIR
+    makepkg -s
+
+    echo The package is located in $PWD/ezio*.pkg.tar.zst
+
 # Remove all build artifacts and caches
 [confirm]
 clean:

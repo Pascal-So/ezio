@@ -47,6 +47,17 @@ python -m http.server
 # now open http://localhost:8000 in your browser
 ```
 
+## Installation
+
+On Arch Linux:
+
+```bash
+wget https://github.com/Pascal-So/ezio/releases/download/v0.1.0/ezio-0.1.0-1-any.pkg.tar.zst
+sudo pacman -U ezio-0.1.0-1-any.pkg.tar.zst
+```
+
+On other distros you might want to check out the Python wheel contained in the [release on GitHub](https://github.com/Pascal-So/ezio/releases).
+
 ## Limitations
 
 This program currently assumes that the following constraints hold. The output
