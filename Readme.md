@@ -1,8 +1,5 @@
 # Ezio
 
-<b>🚧 WIP! This project is not in a working state yet, don't use this right now. 🚧</b>
-<hr/>
-
 Display a recorded route as a static website. Take a look at my
 [Balkans cycling route](https://projects.pascalsommer.ch/balkanvelo/) to see an 
 example output.
@@ -20,7 +17,7 @@ This tool takes photos and routes as input. All input files should be placed
 in an input directory. The tool will check all files in the input directory
 including subdirectories, ignore unrecognized files, and load photos and route
 data. Only [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) files are
-supported for route data for now.
+supported as track source for now.
 
 ```bash
 # Assuming that ./input-directory/ contains your photos and .gpx files
@@ -53,7 +50,7 @@ python -m http.server
 ## Limitations
 
 This program currently assumes that the following constraints hold. The output
-is undefined if the data does not follow these constraints.
+might be subtly incorrect if the data does not follow these constraints.
 
 * Route recordings must not extend across midnight in the active time zone.
 * The combined route must not cross the ±180° longitude line.

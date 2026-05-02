@@ -1,6 +1,6 @@
 [project]
 name = "ezio"
-version = "0.0.1" # remember to also update the version in version.py
+version = "0.1.0" # remember to also update the version in version.py
 description = "Display a recorded route as a static website"
 readme = "Readme.md"
 authors = [
