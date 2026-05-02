@@ -21,7 +21,13 @@ def load_photo(file_path: Path) -> tuple[dt.datetime, Path] | None:
         logger.exception(f"Cannot load photo {file_path}")
         return None
 
-    taken_at = _get_date_taken(image, file_path)
+    exif = image.getexif()
+    make_model = _get_make_model(exif)
+    name = str(file_path)
+    if make_model != "":
+        name += f" ({make_model})"
+    taken_at = _get_date_taken(exif, name)
+
     if taken_at is None:
         logger.info(
             f"skipping photo {file_path} because the capture date could not be determined"
@@ -31,9 +37,14 @@ def load_photo(file_path: Path) -> tuple[dt.datetime, Path] | None:
     return (taken_at, file_path)
 
 
-def _get_date_taken(image: Image.Image, photo_file_path: Path) -> dt.datetime | None:
-    exif = image.getexif()
+def _get_make_model(exif: Image.Exif) -> str:
+    make = exif.get(ExifTags.Base.Make)
+    model = exif.get(ExifTags.Base.Model)
 
+    return f"{make or ''} {model or ''}".strip()
+
+
+def _get_date_taken(exif: Image.Exif, name: str) -> dt.datetime | None:
     ifd_exif = exif.get_ifd(ExifTags.IFD.Exif)
 
     # On a photo that I tested I only had DateTimeOriginal and OffsetTime set,
@@ -62,25 +73,21 @@ def _get_date_taken(image: Image.Image, photo_file_path: Path) -> dt.datetime | 
             # parsing without timezone
             datetime = dt.datetime.strptime(taken_at_str, "%Y:%m:%d %H:%M:%S")
             logger.info(
-                f"found photo {photo_file_path} with capture time {taken_at_str} (no time zone specified)"
+                f"found photo {name} with capture time {taken_at_str} (no time zone specified)"
             )
             return datetime
         except ValueError:
-            logger.warning(
-                f"photo {photo_file_path} contains invalid datetime {taken_at}"
-            )
+            logger.warning(f"photo {name} contains invalid datetime {taken_at}")
             return None
     else:
         try:
             # parsing with timezone
             datetime = dt.datetime.strptime(taken_at_str, "%Y:%m:%d %H:%M:%S%z")
-            logger.info(
-                f"found photo {photo_file_path} with capture time {taken_at_str}"
-            )
+            logger.info(f"found photo {name} with capture time {taken_at_str}")
             return datetime
         except ValueError:
             logger.warning(
-                f"photo {photo_file_path} contains invalid datetime {taken_at} with offset {offset}"
+                f"photo {name} contains invalid datetime {taken_at} with offset {offset}"
             )
             return None
 

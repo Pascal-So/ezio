@@ -25,27 +25,32 @@ export async function fetchAllData(): Promise<Data> {
 
   const segments: Segment[] = [];
 
+  const photoIndexByFilename = new Map<string, number>();
+  for (const [index, photo] of data.photos.entries()) {
+    photoIndexByFilename.set(photo.filename, index);
+  }
+
+  const firstPhotoIndexByDate = new Map<string, number>();
+  for (const [index, photo] of data.photos.entries()) {
+    if (!firstPhotoIndexByDate.has(photo.date)) {
+      firstPhotoIndexByDate.set(photo.date, index);
+    }
+  }
+
   let idx = 0;
   for (const segmentInfo of data.segments) {
-    let imageIndex = null;
+    let imageIndex: number | null = null;
+
     // find the featured photo for this segment
-    // TODO: avoid the n^2
     if (segmentInfo.featuredPhotoFilename !== null) {
-      imageIndex = data.photos.findIndex(
-        (photo) => photo.filename === segmentInfo.featuredPhotoFilename,
-      );
+      imageIndex =
+        photoIndexByFilename.get(segmentInfo.featuredPhotoFilename) ?? null;
     }
 
     // If no featured photo has been set, we default to the first
     // photo of that day.
-    if (imageIndex === null || imageIndex === -1) {
-      imageIndex = data.photos.findIndex(
-        (photo) => photo.date === segmentInfo.date,
-      );
-    }
-
-    if (imageIndex === -1) {
-      imageIndex = null;
+    if (imageIndex === null) {
+      imageIndex = firstPhotoIndexByDate.get(segmentInfo.date) ?? null;
     }
 
     let segment = {

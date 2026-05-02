@@ -43,7 +43,7 @@ def run_wizard(
     inputs = load_input_files(
         source_directory, track_loaders, progress, start_date, end_date
     )
-    inputs.photos.sort()
+    sort_photos(inputs.photos)
 
     segments: list[SegmentInfo] = []
 
@@ -257,3 +257,31 @@ def merge_existing_segments(
         seg.description = existing_seg.description
         if existing_seg.featured_photo in photos:
             seg.featured_photo = existing_seg.featured_photo
+
+
+def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
+    """
+    Best-effort sorting of photos by datetime, dealing with various
+    time zone shennanigans.
+    """
+
+    timezones = {datetime.utcoffset() for (datetime, _) in photos}
+
+    if len(timezones) <= 1:
+        # All photos have the same time zone information, just sort directly.
+        photos.sort()
+        return
+
+    if None in timezones:
+        # Some photos don't have a time zone set, let's just use local time
+        # for everything
+        logger.warning(
+            "sorting photos by directly comparing local times, ignoring time zone info"
+        )
+        photos.sort(key=lambda p: p[0].replace(tzinfo=None))
+        return
+
+    # Otherwise we have photos which all have time zone info, but not all photos
+    # are from the same time zone
+    logger.warning(f"Not all photos are from the same time zone: {timezones}")
+    photos.sort()
