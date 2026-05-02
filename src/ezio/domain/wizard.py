@@ -35,6 +35,7 @@ def run_wizard(
     segment_info_source: SegmentInfoSource,
     start_date: dt.date | None,
     end_date: dt.date | None,
+    title: str | None,
 ) -> None:
     """
     The wizard guides the user through the steps to generate the static website
@@ -137,7 +138,7 @@ def run_wizard(
         f.write(data.model_dump_json(indent=2))
 
     # add the frontend to the output directory
-    copy_frontend(output_directory)
+    copy_frontend(output_directory, title)
 
 
 @dataclass

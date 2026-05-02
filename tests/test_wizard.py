@@ -31,6 +31,7 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
         MockSegmentInfoSource(descriptions),
         None,
         None,
+        None,
     )
 
     # Check data.json

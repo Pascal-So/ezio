@@ -36,7 +36,7 @@ def test_progress_bar() -> None:
 
 
 def test_resource_path() -> None:
-    copy_frontend(OutputDirectory("/tmp"))
+    copy_frontend(OutputDirectory("/tmp"), None)
 
 
 def test_textual_segment_info() -> None:

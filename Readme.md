@@ -34,6 +34,9 @@ display, then you can limit the date range with the following options:
 ezio -i input-directory -o output-directory --start-date 2026-04-21 --end-date 2026-04-23
 ```
 
+You can optionally add a title to the generated static website:
+`--title "My Cool Cycling Trip"`.
+
 The above commands will generate a static website in the output directory, which
 you can now copy to your server. Note that the website doesn't work when using
 the `file://` protocol, i.e. you cannot just double click the `index.html` file

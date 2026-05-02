@@ -47,6 +47,7 @@ def main() -> None:
             segment_info_source,
             start_date=args.start_date,
             end_date=args.end_date,
+            title=args.title,
         )
 
     finally:
@@ -55,6 +56,7 @@ def main() -> None:
 
 @dataclass
 class Args:
+    title: str | None
     input_dir: Path
     output_directory: OutputDirectory
     start_date: dt.date | None
@@ -67,6 +69,7 @@ def _parse_args() -> Args:
         prog="Ezio", description="Display a recorded route as a static website"
     )
 
+    parser.add_argument("--title", required=False, type=str)
     parser.add_argument("-i", "--input", required=True, type=str)
     parser.add_argument("-o", "--output", required=True, type=str)
     parser.add_argument("--start-date", required=False, type=str)
@@ -91,6 +94,7 @@ def _parse_args() -> Args:
         raise Exception(f"Start date {start_date} is after end date {end_date}")
 
     return Args(
+        title=args.title,  # pyright:ignore[reportAny]
         input_dir=Path(args.input),  # pyright:ignore[reportAny]
         output_directory=OutputDirectory(args.output),  # pyright:ignore[reportAny]
         start_date=start_date,
