@@ -17,7 +17,14 @@ from ezio.domain.geo import (
     merge_bounding_boxes,
     track_length_km,
 )
-from ezio.domain.model import Data, OutputDirectory, PhotoInfo, SegmentInfo, Tilecoord
+from ezio.domain.model import (
+    Data,
+    OutputDirectory,
+    PhotoDetails,
+    PhotoInfo,
+    SegmentInfo,
+    Tilecoord,
+)
 from ezio.ports.progress import Progress
 from ezio.ports.segment_info_source import SegmentInfoSource
 from ezio.ports.tilesource import Tilesource
@@ -97,10 +104,8 @@ def run_wizard(
     photos: list[PhotoInfo] = []
 
     # convert and resize photos
-    for taken_at, photo in progress.track(
-        inputs.photos, "Converting and resizing photos"
-    ):
-        photo_info = save_photo(output_directory, photo, taken_at)
+    for photo in progress.track(inputs.photos, "Converting and resizing photos"):
+        photo_info = save_photo(output_directory, photo.path, photo.taken_at)
         photos.append(photo_info)
 
     if output_directory.json_path.is_file():
@@ -143,7 +148,7 @@ def run_wizard(
 
 @dataclass
 class Inputs:
-    photos: list[tuple[dt.datetime, Path]]
+    photos: list[PhotoDetails]
     tracks: list[tuple[dt.datetime, LineStringModel]]
 
 
@@ -260,17 +265,17 @@ def merge_existing_segments(
             seg.featured_photo = existing_seg.featured_photo
 
 
-def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
+def sort_photos(photos: list[PhotoDetails]) -> None:
     """
     Best-effort sorting of photos by datetime, dealing with various
     time zone shennanigans.
     """
 
-    timezones = {datetime.utcoffset() for (datetime, _) in photos}
+    timezones = {photo.taken_at.utcoffset() for photo in photos}
 
     if len(timezones) <= 1:
         # All photos have the same time zone information, just sort directly.
-        photos.sort()
+        photos.sort(key=lambda photo: photo.taken_at)
         return
 
     if None in timezones:
@@ -279,10 +284,11 @@ def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
         logger.warning(
             "sorting photos by directly comparing local times, ignoring time zone info"
         )
-        photos.sort(key=lambda p: p[0].replace(tzinfo=None))
+        photos.sort(key=lambda p: p.taken_at.replace(tzinfo=None))
         return
 
     # Otherwise we have photos which all have time zone info, but not all photos
     # are from the same time zone
     logger.warning(f"Not all photos are from the same time zone: {timezones}")
-    photos.sort()
+    photos.sort(key=lambda photo: photo.taken_at)
+

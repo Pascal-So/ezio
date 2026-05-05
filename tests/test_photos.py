@@ -11,6 +11,6 @@ def test_load_photo(data_dir: Path) -> None:
     expected = dt.datetime(
         2022, 10, 10, 12, 29, 16, tzinfo=dt.timezone(dt.timedelta(hours=2))
     )
-    assert photo[0] == expected
+    assert photo.taken_at == expected
 
     assert load_photo(data_dir / "balkan-simplified.gpx") is None

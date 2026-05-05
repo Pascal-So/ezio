@@ -4,10 +4,12 @@ from pathlib import Path
 
 from PIL import ExifTags, Image, UnidentifiedImageError
 
+from ezio.domain.model import PhotoDetails
+
 logger = logging.getLogger(__name__)
 
 
-def load_photo(file_path: Path) -> tuple[dt.datetime, Path] | None:
+def load_photo(file_path: Path) -> PhotoDetails | None:
     if not file_path.is_file():
         return None
 
@@ -24,7 +26,7 @@ def load_photo(file_path: Path) -> tuple[dt.datetime, Path] | None:
     exif = image.getexif()
     make_model = _get_make_model(exif)
     name = str(file_path)
-    if make_model != "":
+    if make_model is not None:
         name += f" ({make_model})"
     taken_at = _get_date_taken(exif, name)
 
@@ -34,14 +36,18 @@ def load_photo(file_path: Path) -> tuple[dt.datetime, Path] | None:
         )
         return None
 
-    return (taken_at, file_path)
+    return PhotoDetails(taken_at, file_path, make_model)
 
 
-def _get_make_model(exif: Image.Exif) -> str:
+def _get_make_model(exif: Image.Exif) -> str | None:
     make = exif.get(ExifTags.Base.Make)
     model = exif.get(ExifTags.Base.Model)
 
-    return f"{make or ''} {model or ''}".strip()
+    make_model = f"{make or ''} {model or ''}".strip()
+    if make_model == "":
+        return None
+    else:
+        return make_model
 
 
 def _get_date_taken(exif: Image.Exif, name: str) -> dt.datetime | None:

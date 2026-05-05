@@ -25,6 +25,16 @@ class Resolution(BaseModel):
     y: int
 
 
+# TODO: clear up terminology between PhotoDetails and PhotoInfo
+@dataclass
+class PhotoDetails:
+    """Internal info that we get from loading photos from the input"""
+
+    taken_at: dt.datetime
+    path: Path
+    camera: str | None
+
+
 class PhotoInfo(BaseModel):
     filename: str
     date: dt.date
