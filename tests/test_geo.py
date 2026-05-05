@@ -1,5 +1,4 @@
 from pydantic_geojson import FeatureCollectionModel
-from pytest import fixture
 
 from ezio.domain.geo import (
     latitude_to_mercator_y,
@@ -7,13 +6,6 @@ from ezio.domain.geo import (
     track_length_km,
 )
 from ezio.domain.model import BoundingBox
-
-
-@fixture
-def balkan_featurecollection() -> FeatureCollectionModel:
-    with open("tests/data/balkan-simplified.geojson") as f:
-        collection = FeatureCollectionModel.model_validate_json(f.read())
-    return collection
 
 
 def test_linestring_length(balkan_featurecollection: FeatureCollectionModel) -> None:

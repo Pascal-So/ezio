@@ -3,11 +3,14 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import override
 
+from pydantic_geojson import FeatureCollectionModel
+
 from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
 from ezio.domain.wizard import (
     download_tiles,
+    figure_out_timezone,
     load_input_files,
     merge_existing_segments,
     run_wizard,
@@ -155,3 +158,12 @@ def test_merge_existing_segments() -> None:
     assert new_segments[0] == make_segment(days[1], "day 1", "2.jpg")
     assert new_segments[1] == make_segment(days[2], "day 2")
     assert new_segments[2] == make_segment(days[3])
+
+
+def test_figure_out_timezone(balkan_featurecollection: FeatureCollectionModel) -> None:
+    linestring = balkan_featurecollection.features[0].geometry
+    assert linestring is not None and linestring.type == "LineString"
+
+    tz = figure_out_timezone(linestring)
+    assert tz is not None
+    assert tz.key == "Europe/Sofia"

@@ -3,8 +3,10 @@ import logging
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from pydantic_geojson import LineStringModel
+from timezonefinder import timezone_at
 
 from ezio.adapters.photo_source import load_photo  # todo: put this behind a port
 from ezio.domain.generator import write_geojson_files
@@ -292,3 +294,12 @@ def sort_photos(photos: list[PhotoDetails]) -> None:
     logger.warning(f"Not all photos are from the same time zone: {timezones}")
     photos.sort(key=lambda photo: photo.taken_at)
 
+
+def figure_out_timezone(linestring: LineStringModel) -> ZoneInfo | None:
+    coord = linestring.coordinates[0]
+    tz = timezone_at(lng=coord.lon, lat=coord.lat)
+
+    if tz is None:
+        return None
+    else:
+        return ZoneInfo(tz)
