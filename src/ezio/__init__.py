@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 import logging
+import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -69,15 +70,56 @@ class Args:
 
 def _parse_args() -> Args:
     parser = argparse.ArgumentParser(
-        prog="Ezio", description="Display a recorded route as a static website"
+        prog="Ezio",
+        formatter_class=argparse.RawDescriptionHelpFormatter,  # allow for newlines in description
+        description=textwrap.dedent("""\
+            Display a recorded route as a static website.
+
+            Place recorded tracks and photos in the input directory. Subdirectoies
+            are allowed. After running the generator, copy the contents of the
+            output directory to your static file host.
+        """),
+        epilog="For more detailed usage information check the README at https://github.com/Pascal-So/ezio#usage",
     )
 
-    parser.add_argument("--title", required=False, type=str)
-    parser.add_argument("-i", "--input", required=True, type=str)
-    parser.add_argument("-o", "--output", required=True, type=str)
-    parser.add_argument("--start-date", required=False, type=str)
-    parser.add_argument("--end-date", required=False, type=str)
-    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "--title",
+        required=False,
+        type=str,
+        help="Title of the generated HTML page that will be shown in the browser",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        type=str,
+        help="Directory where input files (photos and .gpx) are located",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        type=str,
+        help="Output directory where the static website should be generated",
+    )
+    parser.add_argument(
+        "--start-date",
+        required=False,
+        type=str,
+        help="Only consider tracks in the input that were recorded on or after this day",
+    )
+    parser.add_argument(
+        "--end-date",
+        required=False,
+        type=str,
+        help="Only consider tracks in the input that were recorded on or before this day",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Show more detailed logs",
+    )
 
     args = parser.parse_args()
 
