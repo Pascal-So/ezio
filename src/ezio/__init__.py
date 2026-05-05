@@ -50,8 +50,11 @@ def main() -> None:
             title=args.title,
         )
 
-    finally:
         progress.stop()
+
+    except Exception as e:
+        progress.stop()
+        logger.error(str(e))
 
 
 @dataclass

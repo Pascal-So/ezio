@@ -1,7 +1,10 @@
 import datetime as dt
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import override
+
+import pytest
 
 from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackLoader
@@ -51,6 +54,21 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
         for photo in data.photos:
             assert (output_dir.thumbs_dir / photo.filename).is_file()
             assert (output_dir.photos_dir / photo.filename).is_file()
+
+
+def test_wizard_without_any_tracks(tempdir: Path) -> None:
+    with pytest.raises(Exception, match=re.compile("no tracks", flags=re.IGNORECASE)):
+        run_wizard(
+            tempdir,
+            OutputDirectory(tempdir),
+            [GpxTrackLoader()],
+            FakeTiles(),
+            MockProgress(),
+            MockSegmentInfoSource({}),
+            None,
+            None,
+            None,
+        )
 
 
 def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
