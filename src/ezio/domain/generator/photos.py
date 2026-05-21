@@ -1,9 +1,12 @@
 import datetime as dt
+import logging
 from pathlib import Path
 
 from PIL import Image, ImageOps
 
 from ezio.domain.model import OutputDirectory, PhotoInfo, Resolution
+
+logger = logging.getLogger(__name__)
 
 
 def save_photo(
@@ -12,6 +15,14 @@ def save_photo(
     """Save the photo in large and thumbnail resolutions in the output directory"""
 
     new_filename: str = taken_at.strftime("%Y-%m-%d-%H-%M-%S") + ".webp"
+
+    large_output_path: Path = output_directory.photos_dir / new_filename
+    thumb_output_path: Path = output_directory.thumbs_dir / new_filename
+
+    if large_output_path.is_file() and thumb_output_path.is_file():
+        logger.info(
+            f"Skipping photo {photo_path} because output file {new_filename} already exists"
+        )
 
     photo = Image.open(photo_path)
 
@@ -23,12 +34,12 @@ def save_photo(
     # save the large version of the image
     large_res = _fit_resolution(orig_res, 1920)
     large = _resize_to(photo, large_res)
-    large.save(output_directory.photos_dir / new_filename, method=6)
+    large.save(large_output_path, method=6)
 
     # save the thumbnail image
     thumb_res = _fit_resolution(orig_res, 250)
     thumb = _resize_to(photo, thumb_res)
-    thumb.save(output_directory.thumbs_dir / new_filename, quality=78, method=6)
+    thumb.save(thumb_output_path, quality=78, method=6)
 
     return PhotoInfo(
         filename=new_filename,
