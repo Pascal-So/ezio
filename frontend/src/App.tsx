@@ -4,6 +4,7 @@ import {
   useCallback,
   useState,
   useRef,
+  useEffect,
 } from "react";
 import type { FeatureCollection, MultiLineString, Point } from "geojson";
 
@@ -72,11 +73,14 @@ const App: FC<AppProps> = ({
     const segment = segments.findIndex((s) => s.date === date);
     if (segment !== -1) {
       setSelectedSegment(segment);
-      if (mapRef.current) {
-        mapRef.current.panTo(segment);
-      }
     }
   }
+
+  useEffect(() => {
+    if (mapRef.current && selectedSegment !== null) {
+      mapRef.current.panTo(selectedSegment);
+    }
+  }, [selectedSegment]);
 
   return (
     <div onKeyDown={keyDown}>
