@@ -26,7 +26,7 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
 
     output_dir = OutputDirectory(tempdir)
     run_wizard(
-        data_dir,
+        [data_dir],
         output_dir,
         [GpxTrackLoader()],
         FakeTiles(),
@@ -59,7 +59,7 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
 def test_wizard_without_any_tracks(tempdir: Path) -> None:
     with pytest.raises(Exception, match=re.compile("no tracks", flags=re.IGNORECASE)):
         run_wizard(
-            tempdir,
+            [tempdir],
             OutputDirectory(tempdir),
             [GpxTrackLoader()],
             FakeTiles(),
@@ -78,7 +78,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     # 2 on 2022-10-11
 
     inputs = load_input_files(
-        data_dir,
+        [data_dir],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=dt.date(2022, 10, 11),
@@ -87,7 +87,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     assert len(inputs.tracks) == 2
 
     inputs = load_input_files(
-        data_dir,
+        [data_dir],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=dt.date(2022, 10, 7),
@@ -96,7 +96,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     assert len(inputs.tracks) == 6
 
     inputs = load_input_files(
-        data_dir,
+        [data_dir],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=None,

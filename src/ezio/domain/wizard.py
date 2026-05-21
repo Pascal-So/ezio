@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_wizard(
-    source_directory: Path,
+    source_directories: list[Path],
     output_directory: OutputDirectory,
     track_loaders: Collection[TrackLoader],
     tile_source: Tilesource,
@@ -42,11 +42,11 @@ def run_wizard(
     """
 
     inputs = load_input_files(
-        source_directory, track_loaders, progress, start_date, end_date
+        source_directories, track_loaders, progress, start_date, end_date
     )
     if len(inputs.tracks) == 0:
         raise Exception(
-            f"No tracks were found in the input directory {source_directory}"
+            f"No tracks were found in the input directory {source_directories}"
         )
     sort_photos(inputs.photos)
 
@@ -166,14 +166,15 @@ def all_files(dir: Path) -> Iterable[Path]:
 
 
 def load_input_files(
-    input_dir: Path,
+    input_dirs: list[Path],
     loaders: Collection[TrackLoader],
     progress: Progress,
     start_date: dt.date | None,
     end_date: dt.date | None,
 ) -> Inputs:
-    if not input_dir.is_dir():
-        raise Exception(f"The input directory {input_dir} does not exist")
+    for input_dir in input_dirs:
+        if not input_dir.is_dir():
+            raise Exception(f"The input directory {input_dir} does not exist")
 
     inputs = Inputs(photos=[], tracks=[])
 
@@ -181,7 +182,7 @@ def load_input_files(
     skipped_tracks = 0
     track_files = 0
 
-    files = list(all_files(input_dir))
+    files = [file for input_dir in input_dirs for file in all_files(input_dir)]
     for file_path in progress.track(files, "Loading input files"):
         for loader in loaders:
             tracks = loader.load_tracks(file_path)
