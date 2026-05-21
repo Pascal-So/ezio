@@ -53,6 +53,10 @@ def run_wizard(
     inputs = load_input_files(
         source_directory, track_loaders, progress, start_date, end_date
     )
+    if len(inputs.tracks) == 0:
+        raise Exception(
+            f"No tracks were found in the input directory {source_directory}"
+        )
     sort_photos(inputs.photos)
 
     segments: list[SegmentInfo] = []
