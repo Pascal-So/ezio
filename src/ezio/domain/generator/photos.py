@@ -19,7 +19,8 @@ def save_photo(
     large_output_path: Path = output_directory.photos_dir / new_filename
     thumb_output_path: Path = output_directory.thumbs_dir / new_filename
 
-    if large_output_path.is_file() and thumb_output_path.is_file():
+    skip_saving = large_output_path.is_file() and thumb_output_path.is_file()
+    if skip_saving:
         logger.info(
             f"Skipping photo {photo_path} because output file {new_filename} already exists"
         )
@@ -33,13 +34,15 @@ def save_photo(
 
     # save the large version of the image
     large_res = _fit_resolution(orig_res, 1920)
-    large = _resize_to(photo, large_res)
-    large.save(large_output_path, method=6)
+    if not skip_saving:
+        large = _resize_to(photo, large_res)
+        large.save(large_output_path, method=6)
 
     # save the thumbnail image
     thumb_res = _fit_resolution(orig_res, 250)
-    thumb = _resize_to(photo, thumb_res)
-    thumb.save(thumb_output_path, quality=78, method=6)
+    if not skip_saving:
+        thumb = _resize_to(photo, thumb_res)
+        thumb.save(thumb_output_path, quality=78, method=6)
 
     return PhotoInfo(
         filename=new_filename,
