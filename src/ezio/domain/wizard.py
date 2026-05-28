@@ -107,6 +107,8 @@ def run_wizard(
         photo_info = save_photo(output_directory, photo, taken_at)
         photos.append(photo_info)
 
+    background_segments: list[str] = []
+
     if output_directory.json_path.is_file():
         logger.info(
             f"Existing data found in {output_directory.json_path}, merging with new data"
@@ -114,6 +116,8 @@ def run_wizard(
 
         with open(output_directory.json_path) as f:
             existing_data = Data.model_validate_json(f.read())
+
+        background_segments = existing_data.background_segments
 
         available_photos = {photo.filename for photo in photos}
         merge_existing_segments(
@@ -126,7 +130,7 @@ def run_wizard(
     data = Data(
         segments=segments,
         photos=photos,
-        background_segments=[],
+        background_segments=background_segments,
         total_bounding_box=total_bounding_box,
         max_zoom_level=max_zoom_level,
     )
