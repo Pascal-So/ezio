@@ -4,6 +4,7 @@ check:
     uv run pytest
     uv run mypy . --strict
     uv run ruff check
+    # todo: eslint & tests
 
 # Run the frontend in development mode with hot reloading
 [working-directory: 'frontend']
