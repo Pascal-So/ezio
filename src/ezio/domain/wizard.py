@@ -233,16 +233,24 @@ def download_tiles(
     tiles_dir: Path,
     progress: Progress,
 ) -> None:
+    skipped_tiles: int = 0
+
     for tile_coord in progress.track(tile_coords, description="Downloading map tiles"):
         path = tiles_dir / tile_coord.filename
 
         # skip tiles that we've already got
         if path.is_file():
+            skipped_tiles += 1
             continue
 
         tile = tile_source.get_tile(tile_coord)
         with open(path, "wb") as f:
             f.write(tile)
+
+    if skipped_tiles > 0:
+        logger.info(
+            f"Skipped {skipped_tiles} already existing tiles out of {len(tile_coords)} tiles"
+        )
 
 
 def merge_existing_segments(
