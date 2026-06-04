@@ -100,7 +100,7 @@ def compute_required_map_tiles(
     The set of map tiles that we need to cover the area, across multiple zoom levels
     """
 
-    min_zoom_level = 4
+    min_zoom_level = 1
     padding = 2.5
 
     tiles: list[Tilecoord] = []

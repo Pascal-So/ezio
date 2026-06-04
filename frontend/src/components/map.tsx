@@ -41,13 +41,15 @@ function boundingBoxToLeaflet(
   );
 }
 
+const minZoomLevel = 5;
+
 function MapView(props: MapViewProps) {
   return (
     <>
       <MapContainer
         center={boundingBoxCenter(props.totalBoundingBox)}
-        zoom={8}
-        minZoom={6}
+        zoom={6}
+        minZoom={minZoomLevel}
         maxZoom={props.maxZoom}
         maxBounds={boundingBoxToLeaflet(props.totalBoundingBox, latLng(2, 2))}
       >
