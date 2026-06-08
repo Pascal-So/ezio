@@ -159,11 +159,7 @@ def earth_surface_distance_km(
     return 6378.137 * (2 * math.atan2(math.sqrt(temp), math.sqrt(1 - temp)))
 
 
-def climb(track: LineStringModel) -> float | None:
-    """
-    Calculate the ascent that was climbed during the route, in metres.
-    """
-
+def get_elevations(track: LineStringModel) -> list[float] | None:
     elevations: list[float] = []
 
     for coord in track.coordinates:
@@ -173,7 +169,21 @@ def climb(track: LineStringModel) -> float | None:
             return None
         elevations.append(coord.alt)
 
-    smoothed = _smoothed_elevations(elevations, 10)
+    return elevations
+
+
+def climb(track: LineStringModel) -> float | None:
+    """
+    Calculate the ascent that was climbed during the route, in metres.
+    """
+
+    elevations = get_elevations(track)
+    if elevations is None:
+        # If any of the points does not have elevation set then we skip the
+        # entire climb calculation
+        return None
+
+    smoothed = smoothed_elevations(elevations, 10)
 
     total_climb: float = 0
     for a, b in zip(smoothed, smoothed[1:]):
@@ -183,7 +193,7 @@ def climb(track: LineStringModel) -> float | None:
     return total_climb
 
 
-def _smoothed_elevations(elevations: list[float], box_size: int) -> list[float]:
+def smoothed_elevations(elevations: list[float], box_size: int) -> list[float]:
     """
     Average the elevations across a few points to reduce the influence of noise
     """
