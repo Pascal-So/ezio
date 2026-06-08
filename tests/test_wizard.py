@@ -8,8 +8,16 @@ import pytest
 
 from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackLoader
-from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
+from ezio.domain.model import (
+    Data,
+    OutputDirectory,
+    PhotoInfo,
+    Resolution,
+    SegmentInfo,
+    Tilecoord,
+)
 from ezio.domain.wizard import (
+    count_photos_per_segment,
     download_tiles,
     load_input_files,
     merge_existing_segments,
@@ -173,3 +181,33 @@ def test_merge_existing_segments() -> None:
     assert new_segments[0] == make_segment(days[1], "day 1", "2.jpg")
     assert new_segments[1] == make_segment(days[2], "day 2")
     assert new_segments[2] == make_segment(days[3])
+
+
+def test_nr_photos_per_segment() -> None:
+    days = [
+        dt.date(2026, 4, 10),
+        dt.date(2026, 4, 11),
+        dt.date(2026, 4, 12),
+        dt.date(2026, 4, 13),
+    ]
+
+    def make_photo(date: dt.date) -> PhotoInfo:
+        return PhotoInfo(
+            filename="",
+            date=date,
+            res=Resolution(x=1, y=1),
+            thumb_res=Resolution(x=1, y=1),
+        )
+
+    photos = [make_photo(days[1]), make_photo(days[1]), make_photo(days[2])]
+    segments = [
+        make_segment(days[0], "day 0", ""),
+        make_segment(days[1], "day 1", ""),
+        make_segment(days[2], "day 2", ""),
+    ]
+
+    count_photos_per_segment(photos, segments)
+
+    assert segments[0].nr_photos == 0
+    assert segments[1].nr_photos == 2
+    assert segments[2].nr_photos == 1

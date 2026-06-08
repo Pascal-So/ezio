@@ -2,7 +2,7 @@ import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 Tile = bytes
 
@@ -46,6 +46,7 @@ class SegmentInfo(BaseModel):
     climb_m: float | None
     featured_photo: str | None
     bounding_box: BoundingBox
+    nr_photos: int | None = Field(default=None)
 
 
 class Data(BaseModel):

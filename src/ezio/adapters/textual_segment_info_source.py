@@ -31,6 +31,12 @@ class SegmentInfoApp(App[bool]):
         grid-columns: auto 1fr;
         height: auto;
     }
+    .segment-description {
+        padding-bottom: 1;
+    }
+    .table-header {
+        padding-bottom: 1;
+    }
     Vertical {
         height: auto;
     }
@@ -64,14 +70,15 @@ class SegmentInfoApp(App[bool]):
         yield Label("Enter Segment Descriptions", id="header")
 
         with Grid():
-            yield Label("Segment")
+            yield Label("Segment", classes="table-header")
             yield Label("Description", classes="shift-right")
             # yield Label("Featured Photo", classes="shift-right")
 
             for seg in self._segments:
-                with Vertical():
-                    yield Label(f"Date {seg.date.strftime('%Y-%m-%d')}", classes="date")
+                with Vertical(classes="segment-description"):
+                    yield Label(f"{seg.date.strftime('%Y-%m-%d')}", classes="date")
                     yield Label(f"{seg.dist_km:.3f} km")
+                    yield Label(f"{seg.nr_photos} photos")
 
                 input = Input(value=seg.description, placeholder="Description")
                 self._inputs.append(input)

@@ -139,6 +139,7 @@ def run_wizard(
     tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
 
+    count_photos_per_segment(photos, segments)
     segment_info_source.add_descriptions(data.segments)
 
     # save data.json
@@ -303,3 +304,22 @@ def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
     # are from the same time zone
     logger.warning(f"Not all photos are from the same time zone: {timezones}")
     photos.sort()
+
+
+def count_photos_per_segment(
+    photos: list[PhotoInfo], segments: list[SegmentInfo]
+) -> None:
+    """
+    Modify the `segments` list to fix the `nr_photos` field on every `SegmentInfo`.
+    """
+
+    by_date: dict[dt.date, int] = {}
+
+    for photo in photos:
+        if photo.date not in by_date:
+            by_date[photo.date] = 0
+
+        by_date[photo.date] += 1
+
+    for segment in segments:
+        segment.nr_photos = by_date.get(segment.date, 0)
