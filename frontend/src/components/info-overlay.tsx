@@ -21,6 +21,7 @@ function InfoOverlay({
       <InfoOverlayPhoto
         featuredPhotoFilename={segment.featuredPhotoFilename}
         openPhotoGallery={openPhotoGallery}
+        segmentDate={segment.date}
       />
 
       <div className="p-2">
@@ -65,16 +66,25 @@ function InfoOverlay({
 type InfoOverlayPhotoProps = {
   featuredPhotoFilename: string | null;
   openPhotoGallery: () => void;
+  segmentDate: string;
 };
 
 function InfoOverlayPhoto({
   featuredPhotoFilename,
   openPhotoGallery,
+  segmentDate,
 }: InfoOverlayPhotoProps) {
-  if (featuredPhotoFilename === null) {
+  const hasNoPhotos = featuredPhotoFilename === null;
+  const isSDErrorDay = ["2026-06-09", "2026-06-10", "2026-06-11"].includes(
+    segmentDate,
+  );
+
+  if (hasNoPhotos || isSDErrorDay) {
     return (
-      <div className="w-full aspect-video flex items-center justify-center text-slate-600">
-        <span>No photos on this day</span>
+      <div className="w-full aspect-video flex items-center justify-center text-slate-600 p-2">
+        {(isSDErrorDay && (
+          <span>No photos on this day due to SD card error :(</span>
+        )) || <span>No photos yet for this day, check back later</span>}
       </div>
     );
   }
