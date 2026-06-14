@@ -73,6 +73,10 @@ class OutputDirectory(Path):
         return self / "img" / "tiles"
 
     @property
+    def plots_dir(self) -> Path:
+        return self / "img" / "plots"
+
+    @property
     def tracks_dir(self) -> Path:
         return self / "tracks"
 
@@ -91,5 +95,6 @@ class OutputDirectory(Path):
         self.photos_dir.mkdir(parents=True, exist_ok=True)
         self.thumbs_dir.mkdir(parents=True, exist_ok=True)
         self.tiles_dir.mkdir(parents=True, exist_ok=True)
+        self.plots_dir.mkdir(parents=True, exist_ok=True)
         self.tracks_dir.mkdir(parents=True, exist_ok=True)
         self.background_segments_dir.mkdir(parents=True, exist_ok=True)

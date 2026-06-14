@@ -10,6 +10,7 @@ from ezio.adapters.photo_source import load_photo  # todo: put this behind a por
 from ezio.domain.generator import write_geojson_files
 from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.photos import save_photo
+from ezio.domain.generator.plot import plot_segment
 from ezio.domain.geo import (
     bounding_box,
     climb,
@@ -52,15 +53,7 @@ def run_wizard(
 
     segments: list[SegmentInfo] = []
 
-    # group tracks by date
-    tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
-    for track_datetime, track in inputs.tracks:
-        date = track_datetime.date()
-
-        if date not in tracks_by_date:
-            tracks_by_date[date] = []
-
-        tracks_by_date[date].append(track)
+    tracks_by_date = group_tracks_by_date(inputs.tracks)
 
     # compute stats for tracks
     for date, tracks in tracks_by_date.items():
@@ -138,6 +131,11 @@ def run_wizard(
     # download map tiles
     tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
+
+    # generate plots
+    for date, tracks in tracks_by_date.items():
+        filename = output_directory.plots_dir / date.strftime("%Y-%m-%d.svg")
+        plot_segment(tracks, filename)
 
     count_photos_per_segment(photos, segments)
     segment_info_source.add_descriptions(data.segments)
@@ -304,6 +302,27 @@ def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
     # are from the same time zone
     logger.warning(f"Not all photos are from the same time zone: {timezones}")
     photos.sort()
+
+
+def group_tracks_by_date(
+    tracks: list[tuple[dt.datetime, LineStringModel]],
+) -> dict[dt.date, list[LineStringModel]]:
+    tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
+
+    # TODO: figure out time sorting stuff.
+    #       Problem 1: track might not have tz info?
+    #       Problem 2: track might just have a date without time
+    for track_datetime, track in sorted(
+        tracks, key=lambda val: (val[0].date(), val[0].hour)
+    ):
+        date = track_datetime.date()
+
+        if date not in tracks_by_date:
+            tracks_by_date[date] = []
+
+        tracks_by_date[date].append(track)
+
+    return tracks_by_date
 
 
 def count_photos_per_segment(
