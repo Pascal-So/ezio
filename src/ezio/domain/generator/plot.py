@@ -15,18 +15,20 @@ from ezio.domain.geo import (
 
 
 def setup_plot_style(ax: Axes) -> None:
-    figure_width = 5
-    figure_height = 2
+    figure_width = 2.5
+    figure_height = 1.1
 
     ax.set_frame_on(False)
 
     matplotlib.style.use("fivethirtyeight")
-    matplotlib.rc("font", family="sans-serif", size=12)
+    matplotlib.rc("font", family="sans-serif", size=10)
     matplotlib.rc("figure", figsize=(figure_width, figure_height))
     matplotlib.rc("axes", linewidth=1)
     matplotlib.rc("lines", linewidth=2)
 
     plt.tick_params(top="off", right="off", which="both")
+
+    plt.gcf().set_size_inches(figure_width, figure_height)
 
     ax.yaxis.set_tick_params(labelleft=False)
 
@@ -50,6 +52,7 @@ def extract_xy(
     for track in tracks:
         elevations = get_elevations(track)
         if elevations is None:
+            # TODO: handle this exception somewhere
             raise Exception("Track does not contain elevation data")
 
         distances: list[float] = []
@@ -78,6 +81,7 @@ def extract_xy(
 
 @dataclass
 class PlotBounds:
+    lowest_line: float
     lower: float
     upper: float
     tick_spacing: float
@@ -85,7 +89,7 @@ class PlotBounds:
 
 def get_plot_bounds(elevations: list[float]) -> PlotBounds:
     tick_spacing: float = 100
-    min_range: float = 180
+    min_range: float = 215
 
     min_y = float(np.min(elevations))
     max_y = float(np.max(elevations))
@@ -93,28 +97,24 @@ def get_plot_bounds(elevations: list[float]) -> PlotBounds:
     if max_y - min_y > 600:
         tick_spacing = 200
 
-    mid_y = (min_y + max_y) / 2
-    lower_line = (mid_y // tick_spacing) * tick_spacing
-    upper_line = lower_line + tick_spacing
+    lowest_line = max((min_y // tick_spacing) * tick_spacing, 0)
 
-    lower_unpadded = min(min_y, lower_line)
-    upper_unpadded = max(max_y, upper_line)
-    range = upper_unpadded - lower_unpadded
-
-    lower = lower_unpadded - range * 0.05
-    upper = upper_unpadded + range * 0.05
-    range = upper - lower
-    if range < min_range:
+    if max_y - lowest_line < min_range:
         tick_spacing = 50
-        remaining = min_range - range
-        lower = max(lower - remaining / 3, min(lower, 0))
-        upper = lower + min_range
 
-    return PlotBounds(lower=lower, upper=upper, tick_spacing=tick_spacing)
+    upper = max(max_y, lowest_line + min_range)
+    padding = (upper - lowest_line) * 0.1
+
+    return PlotBounds(
+        lowest_line=lowest_line,
+        lower=lowest_line - padding * 0.3,
+        upper=upper + padding * 0.7,
+        tick_spacing=tick_spacing,
+    )
 
 
 def plot_segment(segment: list[LineStringModel], output_path: Path) -> None:
-    smoothing_size = 6
+    smoothing_size = 15
     x, y = extract_xy(segment, smoothing_size)
 
     bounds = get_plot_bounds(y)
@@ -122,7 +122,7 @@ def plot_segment(segment: list[LineStringModel], output_path: Path) -> None:
     plt.ylim(bounds.lower, bounds.upper)
     plt.yticks(
         np.arange(
-            np.ceil(bounds.lower / bounds.tick_spacing + 0.05) * bounds.tick_spacing,
+            bounds.lowest_line,
             bounds.upper,
             step=bounds.tick_spacing,
         )
@@ -134,24 +134,24 @@ def plot_segment(segment: list[LineStringModel], output_path: Path) -> None:
     setup_plot_style(ax)
 
     gridline_col = "#ccc"
-    line_col = "#abb"
+    line_col = "#9aa"
+    ticks_col = "#abb"
 
     for tick in ax.yaxis.get_major_ticks():
         tick_y = tick.get_loc()
         ax.text(
             0.99,
             tick_y,
-            f"{tick_y:.0f}m",
+            f"{tick_y:.0f}m" if tick_y % 100 == 0 else "",
             transform=ax.get_yaxis_transform(),
             ha="right",
             va="bottom",
-            fontsize=14,
-            color=gridline_col,
+            color=ticks_col,
         )
     ax.yaxis.grid(True, color=gridline_col)
 
     plt.tight_layout(pad=0, w_pad=0, h_pad=0)
 
     plt.plot(x, y, c=line_col)
-    plt.savefig(output_path)
+    plt.savefig(output_path, transparent=True)
     plt.cla()

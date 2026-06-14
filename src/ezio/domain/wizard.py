@@ -10,6 +10,7 @@ from ezio.adapters.photo_source import load_photo  # todo: put this behind a por
 from ezio.domain.generator import write_geojson_files
 from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.photos import save_photo
+from ezio.domain.generator.plot import plot_segment
 from ezio.domain.geo import (
     bounding_box,
     climb,
@@ -130,6 +131,11 @@ def run_wizard(
     # download map tiles
     tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
+
+    # generate plots
+    for date, tracks in tracks_by_date.items():
+        filename = output_directory.plots_dir / date.strftime("%Y-%m-%d.svg")
+        plot_segment(tracks, filename)
 
     count_photos_per_segment(photos, segments)
     segment_info_source.add_descriptions(data.segments)
