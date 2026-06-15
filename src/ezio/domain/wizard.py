@@ -18,7 +18,14 @@ from ezio.domain.geo import (
     merge_bounding_boxes,
     track_length_km,
 )
-from ezio.domain.model import Data, OutputDirectory, PhotoInfo, SegmentInfo, Tilecoord
+from ezio.domain.model import (
+    Data,
+    OutputDirectory,
+    PhotoInfo,
+    SegmentInfo,
+    Tilecoord,
+    load_existing_data,
+)
 from ezio.ports.progress import Progress
 from ezio.ports.segment_info_source import SegmentInfoSource
 from ezio.ports.tilesource import Tilesource
@@ -107,8 +114,7 @@ def run_wizard(
             f"Existing data found in {output_directory.json_path}, merging with new data"
         )
 
-        with open(output_directory.json_path) as f:
-            existing_data = Data.model_validate_json(f.read())
+        existing_data = load_existing_data(output_directory.json_path)
 
         background_segments = existing_data.background_segments
 
