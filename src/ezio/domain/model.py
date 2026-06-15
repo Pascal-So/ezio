@@ -2,7 +2,7 @@ import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 Tile = bytes
 
@@ -56,6 +56,7 @@ class SegmentInfo(BaseModel):
     climb_m: float | None
     featured_photo: str | None
     bounding_box: BoundingBox
+    nr_photos: int | None = Field(default=None)
 
 
 class Data(BaseModel):
@@ -82,6 +83,10 @@ class OutputDirectory(Path):
         return self / "img" / "tiles"
 
     @property
+    def plots_dir(self) -> Path:
+        return self / "img" / "plots"
+
+    @property
     def tracks_dir(self) -> Path:
         return self / "tracks"
 
@@ -100,5 +105,6 @@ class OutputDirectory(Path):
         self.photos_dir.mkdir(parents=True, exist_ok=True)
         self.thumbs_dir.mkdir(parents=True, exist_ok=True)
         self.tiles_dir.mkdir(parents=True, exist_ok=True)
+        self.plots_dir.mkdir(parents=True, exist_ok=True)
         self.tracks_dir.mkdir(parents=True, exist_ok=True)
         self.background_segments_dir.mkdir(parents=True, exist_ok=True)

@@ -40,7 +40,7 @@ def main() -> None:
 
     try:
         run_wizard(
-            args.input_dir,
+            args.input_dirs,
             args.output_directory,
             track_loaders,
             tile_source,
@@ -61,7 +61,7 @@ def main() -> None:
 @dataclass
 class Args:
     title: str | None
-    input_dir: Path
+    input_dirs: list[Path]
     output_directory: OutputDirectory
     start_date: dt.date | None
     end_date: dt.date | None
@@ -93,7 +93,8 @@ def _parse_args() -> Args:
         "--input",
         required=True,
         type=str,
-        help="Directory where input files (photos and .gpx) are located",
+        help="Directory where input files (photos and .gpx) are located. Multiple input directories can be provided",
+        action="append",
     )
     parser.add_argument(
         "-o",
@@ -140,7 +141,7 @@ def _parse_args() -> Args:
 
     return Args(
         title=args.title,  # pyright:ignore[reportAny]
-        input_dir=Path(args.input),  # pyright:ignore[reportAny]
+        input_dirs=list(map(Path, args.input)),  # pyright:ignore[reportAny]
         output_directory=OutputDirectory(args.output),  # pyright:ignore[reportAny]
         start_date=start_date,
         end_date=end_date,

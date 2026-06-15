@@ -12,6 +12,7 @@ from ezio.adapters.photo_source import load_photo  # todo: put this behind a por
 from ezio.domain.generator import write_geojson_files
 from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.photos import save_photo
+from ezio.domain.generator.plot import plot_segment
 from ezio.domain.geo import (
     bounding_box,
     climb,
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_wizard(
-    source_directory: Path,
+    source_directories: list[Path],
     output_directory: OutputDirectory,
     track_loaders: Collection[TrackLoader],
     tile_source: Tilesource,
@@ -51,25 +52,17 @@ def run_wizard(
     """
 
     inputs = load_input_files(
-        source_directory, track_loaders, progress, start_date, end_date
+        source_directories, track_loaders, progress, start_date, end_date
     )
     if len(inputs.tracks) == 0:
         raise Exception(
-            f"No tracks were found in the input directory {source_directory}"
+            f"No tracks were found in the input directory {source_directories}"
         )
     sort_photos(inputs.photos)
 
     segments: list[SegmentInfo] = []
 
-    # group tracks by date
-    tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
-    for track_datetime, track in inputs.tracks:
-        date = track_datetime.date()
-
-        if date not in tracks_by_date:
-            tracks_by_date[date] = []
-
-        tracks_by_date[date].append(track)
+    tracks_by_date = group_tracks_by_date(inputs.tracks)
 
     # compute stats for tracks
     for date, tracks in tracks_by_date.items():
@@ -114,6 +107,8 @@ def run_wizard(
         photo_info = save_photo(output_directory, photo.path, photo.taken_at)
         photos.append(photo_info)
 
+    background_segments: list[str] = []
+
     if output_directory.json_path.is_file():
         logger.info(
             f"Existing data found in {output_directory.json_path}, merging with new data"
@@ -121,6 +116,8 @@ def run_wizard(
 
         with open(output_directory.json_path) as f:
             existing_data = Data.model_validate_json(f.read())
+
+        background_segments = existing_data.background_segments
 
         available_photos = {photo.filename for photo in photos}
         merge_existing_segments(
@@ -133,7 +130,7 @@ def run_wizard(
     data = Data(
         segments=segments,
         photos=photos,
-        background_segments=[],
+        background_segments=background_segments,
         total_bounding_box=total_bounding_box,
         max_zoom_level=max_zoom_level,
     )
@@ -142,6 +139,12 @@ def run_wizard(
     tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
     download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
 
+    # generate plots
+    for date, tracks in tracks_by_date.items():
+        filename = output_directory.plots_dir / date.strftime("%Y-%m-%d.svg")
+        plot_segment(tracks, filename)
+
+    count_photos_per_segment(photos, segments)
     segment_info_source.add_descriptions(data.segments)
 
     # save data.json
@@ -173,14 +176,15 @@ def all_files(dir: Path) -> Iterable[Path]:
 
 
 def load_input_files(
-    input_dir: Path,
+    input_dirs: list[Path],
     loaders: Collection[TrackLoader],
     progress: Progress,
     start_date: dt.date | None,
     end_date: dt.date | None,
 ) -> Inputs:
-    if not input_dir.is_dir():
-        raise Exception(f"The input directory {input_dir} does not exist")
+    for input_dir in input_dirs:
+        if not input_dir.is_dir():
+            raise Exception(f"The input directory {input_dir} does not exist")
 
     inputs = Inputs(photos=[], tracks=[])
 
@@ -188,7 +192,7 @@ def load_input_files(
     skipped_tracks = 0
     track_files = 0
 
-    files = list(all_files(input_dir))
+    files = [file for input_dir in input_dirs for file in all_files(input_dir)]
     for file_path in progress.track(files, "Loading input files"):
         for loader in loaders:
             tracks = loader.load_tracks(file_path)
@@ -235,16 +239,24 @@ def download_tiles(
     tiles_dir: Path,
     progress: Progress,
 ) -> None:
+    skipped_tiles: int = 0
+
     for tile_coord in progress.track(tile_coords, description="Downloading map tiles"):
         path = tiles_dir / tile_coord.filename
 
         # skip tiles that we've already got
         if path.is_file():
+            skipped_tiles += 1
             continue
 
         tile = tile_source.get_tile(tile_coord)
         with open(path, "wb") as f:
             f.write(tile)
+
+    if skipped_tiles > 0:
+        logger.info(
+            f"Skipped {skipped_tiles} already existing tiles out of {len(tile_coords)} tiles"
+        )
 
 
 def merge_existing_segments(
@@ -307,3 +319,43 @@ def figure_out_timezone(linestring: LineStringModel) -> ZoneInfo | None:
         return None
     else:
         return ZoneInfo(tz)
+
+
+def group_tracks_by_date(
+    tracks: list[tuple[dt.datetime, LineStringModel]],
+) -> dict[dt.date, list[LineStringModel]]:
+    tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
+
+    # TODO: figure out time sorting stuff.
+    #       Problem 1: track might not have tz info?
+    #       Problem 2: track might just have a date without time
+    for track_datetime, track in sorted(
+        tracks, key=lambda val: (val[0].date(), val[0].hour)
+    ):
+        date = track_datetime.date()
+
+        if date not in tracks_by_date:
+            tracks_by_date[date] = []
+
+        tracks_by_date[date].append(track)
+
+    return tracks_by_date
+
+
+def count_photos_per_segment(
+    photos: list[PhotoInfo], segments: list[SegmentInfo]
+) -> None:
+    """
+    Modify the `segments` list to fix the `nr_photos` field on every `SegmentInfo`.
+    """
+
+    by_date: dict[dt.date, int] = {}
+
+    for photo in photos:
+        if photo.date not in by_date:
+            by_date[photo.date] = 0
+
+        by_date[photo.date] += 1
+
+    for segment in segments:
+        segment.nr_photos = by_date.get(segment.date, 0)

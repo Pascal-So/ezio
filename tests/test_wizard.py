@@ -9,8 +9,16 @@ from pydantic_geojson import FeatureCollectionModel
 
 from ezio.adapters.fake_tiles import FakeTiles
 from ezio.adapters.gpx import GpxTrackLoader
-from ezio.domain.model import Data, OutputDirectory, SegmentInfo, Tilecoord
+from ezio.domain.model import (
+    Data,
+    OutputDirectory,
+    PhotoInfo,
+    Resolution,
+    SegmentInfo,
+    Tilecoord,
+)
 from ezio.domain.wizard import (
+    count_photos_per_segment,
     download_tiles,
     figure_out_timezone,
     load_input_files,
@@ -28,7 +36,7 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
 
     output_dir = OutputDirectory(tempdir)
     run_wizard(
-        data_dir,
+        [data_dir],
         output_dir,
         [GpxTrackLoader()],
         FakeTiles(),
@@ -61,7 +69,7 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
 def test_wizard_without_any_tracks(tempdir: Path) -> None:
     with pytest.raises(Exception, match=re.compile("no tracks", flags=re.IGNORECASE)):
         run_wizard(
-            tempdir,
+            [tempdir],
             OutputDirectory(tempdir),
             [GpxTrackLoader()],
             FakeTiles(),
@@ -80,7 +88,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     # 2 on 2022-10-11
 
     inputs = load_input_files(
-        data_dir,
+        [data_dir],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=dt.date(2022, 10, 11),
@@ -89,7 +97,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     assert len(inputs.tracks) == 2
 
     inputs = load_input_files(
-        data_dir,
+        [data_dir],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=dt.date(2022, 10, 7),
@@ -98,7 +106,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     assert len(inputs.tracks) == 6
 
     inputs = load_input_files(
-        data_dir,
+        [data_dir],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=None,
@@ -184,3 +192,33 @@ def test_figure_out_timezone(balkan_featurecollection: FeatureCollectionModel) -
     tz = figure_out_timezone(linestring)
     assert tz is not None
     assert tz.key == "Europe/Sofia"
+
+
+def test_nr_photos_per_segment() -> None:
+    days = [
+        dt.date(2026, 4, 10),
+        dt.date(2026, 4, 11),
+        dt.date(2026, 4, 12),
+        dt.date(2026, 4, 13),
+    ]
+
+    def make_photo(date: dt.date) -> PhotoInfo:
+        return PhotoInfo(
+            filename="",
+            date=date,
+            res=Resolution(x=1, y=1),
+            thumb_res=Resolution(x=1, y=1),
+        )
+
+    photos = [make_photo(days[1]), make_photo(days[1]), make_photo(days[2])]
+    segments = [
+        make_segment(days[0], "day 0", ""),
+        make_segment(days[1], "day 1", ""),
+        make_segment(days[2], "day 2", ""),
+    ]
+
+    count_photos_per_segment(photos, segments)
+
+    assert segments[0].nr_photos == 0
+    assert segments[1].nr_photos == 2
+    assert segments[2].nr_photos == 1

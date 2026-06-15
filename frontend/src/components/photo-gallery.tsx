@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Lightbox, { type SlideImage } from "yet-another-react-lightbox";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
@@ -20,6 +21,7 @@ function PhotoGallery({
   selectSegmentByDate,
 }: PhotoGalleryProps) {
   const slides = photosToSlides(photos);
+  const aspect = useAspect();
 
   return (
     <Lightbox
@@ -42,7 +44,7 @@ function PhotoGallery({
       }}
       plugins={[Fullscreen, Thumbnails, Zoom]}
       thumbnails={{
-        position: "start",
+        position: aspect === "landscape" ? "start" : "bottom",
         border: 0,
         gap: 3,
         width: 70,
@@ -82,3 +84,23 @@ function photosToSlides(photos: PhotoInfo[]): SlideWithDate[] {
 }
 
 export default PhotoGallery;
+
+// Custom hook to detect aspect ratio
+const useAspect = () => {
+  const getAspect = (): "landscape" | "portrait" =>
+    window.innerWidth > window.innerHeight ? "landscape" : "portrait";
+  const [aspect, setAspect] = useState(getAspect());
+
+  useEffect(() => {
+    const listener = () => setAspect(getAspect());
+
+    window.addEventListener("resize", listener);
+
+    // clean up the event listener in the end
+    return () => {
+      window.removeEventListener("resize", listener);
+    };
+  }, [setAspect]);
+
+  return aspect;
+};

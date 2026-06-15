@@ -17,7 +17,7 @@ function InfoOverlay({
   openPhotoGallery,
 }: InfoOverlayProps) {
   return (
-    <div className="shadow-lg flex flex-col max-w-60 bg-slate-100 rounded-lg absolute z-[1000] bottom-3 left-3 overflow-hidden">
+    <div className="shadow-lg flex flex-col max-w-[250px] bg-slate-100 rounded-lg absolute z-[1000] bottom-3 left-3 overflow-hidden">
       <InfoOverlayPhoto
         featuredPhotoFilename={segment.featuredPhotoFilename}
         openPhotoGallery={openPhotoGallery}
@@ -58,6 +58,12 @@ function InfoOverlay({
           )}
         </div>
       </div>
+
+      <img
+        title="Elevation"
+        alt="Plot of the elevation over the course of the day"
+        src={`img/plots/${segment.date}.svg`}
+      />
     </div>
   );
 }
@@ -96,7 +102,7 @@ type DetailWithIconProps = {
 };
 function DetailWithIcon({ icon, text, title }: DetailWithIconProps) {
   return (
-    <span title={title} className="mr-2 mt-2">
+    <span title={title} className="mr-2">
       <img src={icon} className="h-[1.8em] align-middle inline-block" />{" "}
       <span className="align-middle">{text}</span>
     </span>
