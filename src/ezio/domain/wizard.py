@@ -62,6 +62,8 @@ def run_wizard(
 
     tracks_by_date = group_tracks_by_date(inputs.tracks)
 
+    total_distance_km: float = 0
+
     # compute stats for tracks
     for date, tracks in tracks_by_date.items():
         distance_km: float = 0
@@ -78,6 +80,8 @@ def run_wizard(
                 climb_m = None
             else:
                 climb_m += c
+
+        total_distance_km += distance_km
 
         bbox = merge_bounding_boxes([bounding_box(track) for track in tracks])
 
@@ -159,6 +163,8 @@ def run_wizard(
 
     # add the frontend to the output directory
     copy_frontend(output_directory, title)
+
+    logger.info(f"Total track distance: {total_distance_km:.2f} km")
 
 
 @dataclass
