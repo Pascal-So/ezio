@@ -7,6 +7,7 @@ from typing import override
 import pytest
 
 from ezio.adapters.fake_tiles import FakeTiles
+from ezio.adapters.geojson import GeoJsonTrackLoader
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.domain.model import (
     Data,
@@ -69,7 +70,7 @@ def test_wizard_without_any_tracks(tempdir: Path) -> None:
         run_wizard(
             [tempdir],
             OutputDirectory(tempdir),
-            [GpxTrackLoader()],
+            [GpxTrackLoader(), GeoJsonTrackLoader()],
             FakeTiles(),
             MockProgress(),
             MockSegmentInfoSource({}),

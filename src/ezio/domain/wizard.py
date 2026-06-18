@@ -18,7 +18,14 @@ from ezio.domain.geo import (
     merge_bounding_boxes,
     track_length_km,
 )
-from ezio.domain.model import Data, OutputDirectory, PhotoInfo, SegmentInfo, Tilecoord
+from ezio.domain.model import (
+    Data,
+    OutputDirectory,
+    PhotoInfo,
+    SegmentInfo,
+    Tilecoord,
+    load_existing_data,
+)
 from ezio.ports.progress import Progress
 from ezio.ports.segment_info_source import SegmentInfoSource
 from ezio.ports.tilesource import Tilesource
@@ -55,6 +62,8 @@ def run_wizard(
 
     tracks_by_date = group_tracks_by_date(inputs.tracks)
 
+    total_distance_km: float = 0
+
     # compute stats for tracks
     for date, tracks in tracks_by_date.items():
         distance_km: float = 0
@@ -71,6 +80,8 @@ def run_wizard(
                 climb_m = None
             else:
                 climb_m += c
+
+        total_distance_km += distance_km
 
         bbox = merge_bounding_boxes([bounding_box(track) for track in tracks])
 
@@ -107,8 +118,7 @@ def run_wizard(
             f"Existing data found in {output_directory.json_path}, merging with new data"
         )
 
-        with open(output_directory.json_path) as f:
-            existing_data = Data.model_validate_json(f.read())
+        existing_data = load_existing_data(output_directory.json_path)
 
         background_segments = existing_data.background_segments
 
@@ -130,7 +140,14 @@ def run_wizard(
 
     # download map tiles
     tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
-    download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
+
+    try:
+        download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
+    except Exception:
+        logger.warning(
+            "Error while downloading map tiles, some tiles might be missing",
+            exc_info=True,
+        )
 
     # generate plots
     for date, tracks in tracks_by_date.items():
@@ -147,6 +164,8 @@ def run_wizard(
     # add the frontend to the output directory
     copy_frontend(output_directory, title)
 
+    logger.info(f"Total track distance: {total_distance_km:.2f} km")
+
 
 @dataclass
 class Inputs:
@@ -154,38 +173,41 @@ class Inputs:
     tracks: list[tuple[dt.datetime, LineStringModel]]
 
 
-def all_files(dir: Path) -> Iterable[Path]:
+def all_files(path: Path) -> Iterable[Path]:
     """
     Recursively list all files in the directory. The directories themselves
     are not listed.
+
+    If the given path is a file, just return that file directly.
     """
 
-    for root, _dirs, files in dir.walk():
-        for file in files:
-            file_path = root / file
-            if not file_path.is_file():
-                continue
-            yield file_path
+    if path.is_file():
+        yield path
+    elif path.is_dir():
+        for root, _dirs, files in path.walk():
+            for file in files:
+                file_path = root / file
+                if not file_path.is_file():
+                    continue
+                yield file_path
+    else:
+        raise Exception(f"The given input path {path} does not exist")
 
 
 def load_input_files(
-    input_dirs: list[Path],
+    input_paths: list[Path],
     loaders: Collection[TrackLoader],
     progress: Progress,
     start_date: dt.date | None,
     end_date: dt.date | None,
 ) -> Inputs:
-    for input_dir in input_dirs:
-        if not input_dir.is_dir():
-            raise Exception(f"The input directory {input_dir} does not exist")
-
     inputs = Inputs(photos=[], tracks=[])
 
     loaded_tracks = 0
     skipped_tracks = 0
     track_files = 0
 
-    files = [file for input_dir in input_dirs for file in all_files(input_dir)]
+    files = [file for input_path in input_paths for file in all_files(input_path)]
     for file_path in progress.track(files, "Loading input files"):
         for loader in loaders:
             tracks = loader.load_tracks(file_path)

@@ -1,0 +1,14 @@
+{
+"segments": [
+    {
+        "date": "2022-09-03",
+        "dist": 39.1,
+        "climb": 475,
+        "desc": "Segment A",
+        "feat": "photo.webp"
+    }
+],
+"photos": [
+    {"n": "photo.webp", "w": 3460, "h": 2311, "tw": 250, "th": 167}
+]
+}

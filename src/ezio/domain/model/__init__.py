@@ -4,6 +4,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from ezio.domain.model.old_model import OldData, OldSegmentInfo
+
 Tile = bytes
 
 
@@ -98,3 +100,53 @@ class OutputDirectory(Path):
         self.plots_dir.mkdir(parents=True, exist_ok=True)
         self.tracks_dir.mkdir(parents=True, exist_ok=True)
         self.background_segments_dir.mkdir(parents=True, exist_ok=True)
+
+
+@dataclass
+class ExistingData:
+    background_segments: list[str]
+    segments: list[SegmentInfo]
+
+
+def load_existing_data(json_path: Path) -> ExistingData:
+    """
+    Try to load the contents of the existing data.json with fallbacks to older
+    data formats.
+    """
+
+    with open(json_path) as f:
+        json = f.read()
+
+    try:
+        existing_data = Data.model_validate_json(json)
+
+        return ExistingData(
+            background_segments=existing_data.background_segments,
+            segments=existing_data.segments,
+        )
+    except Exception as e:
+        # Format doesn't match, let's try the old format
+
+        try:
+            existing_old_data = OldData.model_validate_json(json)
+        except Exception:
+            # The old format doesn't match either. Let's re-raise the original
+            # error message for the new format because that's probably more
+            # instructive.
+            raise e
+
+        def convert_old_segment(old_segment: OldSegmentInfo) -> SegmentInfo:
+            return SegmentInfo(
+                date=old_segment.date,
+                description=old_segment.desc,
+                dist_km=old_segment.dist,
+                climb_m=old_segment.climb,
+                featured_photo=old_segment.feat,
+                bounding_box=BoundingBox(min_lat=0, max_lat=0, min_lng=0, max_lng=0),
+                nr_photos=None,
+            )
+
+        return ExistingData(
+            background_segments=existing_old_data.background_segments,
+            segments=list(map(convert_old_segment, existing_old_data.segments)),
+        )

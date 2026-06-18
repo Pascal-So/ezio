@@ -208,7 +208,7 @@ function BackgroundSegment({ segment, index }: BackgroundSegmentProps) {
       data={segment}
       style={{
         color: "#bbb",
-        opacity: 0.7,
+        opacity: 0.45,
         weight: 2,
       }}
     ></GeoJSON>
