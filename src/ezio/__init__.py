@@ -7,6 +7,7 @@ from pathlib import Path
 
 from rich.logging import RichHandler
 
+from ezio.adapters.geojson import GeoJsonTrackLoader
 from ezio.adapters.gpx import GpxTrackLoader
 from ezio.adapters.jawg import Jawg
 from ezio.adapters.rich_progress import RichProgress
@@ -34,7 +35,7 @@ def main() -> None:
 
     tile_source = Jawg()
     # tile_source = FakeTiles()
-    track_loaders = [GpxTrackLoader()]
+    track_loaders = [GpxTrackLoader(), GeoJsonTrackLoader()]
     segment_info_source = TextualSegmentInfoSource()
     progress = RichProgress()
 
