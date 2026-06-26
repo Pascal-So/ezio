@@ -21,3 +21,21 @@ body,
   width: 100vw;
   background: rgb(25, 26, 26);
 }
+
+@keyframes flash {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  88% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
