@@ -24,35 +24,40 @@ function PhotoGallery({
   const aspect = useAspect();
 
   return (
-    <Lightbox
-      slides={slides}
-      open={imageIndex !== null}
-      index={imageIndex ?? undefined}
-      close={() => setImageIndex(null)}
-      animation={{
-        swipe: 200,
-      }}
-      on={{
-        view({ index }) {
-          setImageIndex(index);
-          selectSegmentByDate(photos[index].date);
-        },
-      }}
-      carousel={{
-        preload: 4,
-        padding: "6px",
-      }}
-      plugins={[Fullscreen, Thumbnails, Zoom]}
-      thumbnails={{
-        position: aspect === "landscape" ? "start" : "bottom",
-        border: 0,
-        gap: 3,
-        width: 70,
-        height: (160 * 70) / 250,
-        padding: 0,
-        vignette: false,
-      }}
-    ></Lightbox>
+    <>
+      { /* TODO: deal with overlap of text and toolbar */ }
+      { /* TODO: make this work in fullscreen. possibly do a yarl plugin? */ }
+      { imageIndex !== null && <div key={ photos[imageIndex].date } className="fixed z-[10000] text-slate-100 py-3 px-5 text-xl animate-[flash_4s] text-shadow-lg opacity-0">{ photos[imageIndex].date }</div> }
+      <Lightbox
+        slides={slides}
+        open={imageIndex !== null}
+        index={imageIndex ?? undefined}
+        close={() => setImageIndex(null)}
+        animation={{
+          swipe: 200,
+        }}
+        on={{
+          view({ index }) {
+            setImageIndex(index);
+            selectSegmentByDate(photos[index].date);
+          },
+        }}
+        carousel={{
+          preload: 4,
+          padding: "6px",
+        }}
+        plugins={[Fullscreen, Thumbnails, Zoom]}
+        thumbnails={{
+          position: aspect === "landscape" ? "end" : "bottom",
+          border: 0,
+          gap: 3,
+          width: 70,
+          height: (160 * 70) / 250,
+          padding: 0,
+          vignette: false,
+        }}
+      ></Lightbox>
+    </>
   );
 }
 
