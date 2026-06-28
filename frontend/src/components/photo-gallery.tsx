@@ -23,12 +23,19 @@ function PhotoGallery({
   const slides = photosToSlides(photos);
   const aspect = useAspect();
 
+  const date: string = imageIndex !== null ? photos[imageIndex].date : "";
+
   return (
     <>
-      { /* TODO: deal with overlap of text and toolbar */ }
-      { /* TODO: make this work in fullscreen. possibly do a yarl plugin? */ }
-      { imageIndex !== null && <div key={ photos[imageIndex].date } className="fixed z-[10000] text-slate-100 py-3 px-5 text-xl animate-[flash_4s] text-shadow-lg opacity-0">{ photos[imageIndex].date }</div> }
       <Lightbox
+        toolbar={{
+          buttons: [
+            <ToolbarText key={date} text={date} flash={true} />,
+            "zoom",
+            "fullscreen",
+            "close",
+          ],
+        }}
         slides={slides}
         open={imageIndex !== null}
         index={imageIndex ?? undefined}
@@ -89,6 +96,25 @@ function photosToSlides(photos: PhotoInfo[]): SlideWithDate[] {
 }
 
 export default PhotoGallery;
+
+type ToolbarTextProps = {
+  text: string;
+  flash: boolean;
+};
+
+function ToolbarText({ text, flash }: ToolbarTextProps) {
+  return (
+    <span
+      key={text}
+      className={
+        "text-[color:hsla(0,0%,100%,.8)] text-shadow-[2px_2px_2px_rgba(0,0,0,0.6)] text-[23px] pb-1 pr-2 font-bold self-center" +
+        (flash ? " animate-[flash_4s] opacity-0" : "")
+      }
+    >
+      {text}
+    </span>
+  );
+}
 
 // Custom hook to detect aspect ratio
 const useAspect = () => {
