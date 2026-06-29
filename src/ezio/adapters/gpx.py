@@ -6,9 +6,9 @@ from typing import override
 
 import gpxpy
 from gpxpy.gpx import GPXTrackSegment
-from pydantic_geojson import LineStringModel
 from pydantic_geojson._base import Coordinates
 
+from ezio.domain.model import Track
 from ezio.ports.tracksource import TrackLoader
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,7 @@ class GpxTrackLoader(TrackLoader):
     """Load track segments from a GPX file"""
 
     @override
-    def load_tracks(
-        self, file_path: Path
-    ) -> list[tuple[dt.datetime, LineStringModel]] | None:
+    def load_tracks(self, file_path: Path) -> list[tuple[dt.datetime, Track]] | None:
         if not file_path.is_file() or file_path.suffix != ".gpx":
             return None
 
@@ -65,17 +63,6 @@ class GpxTrackLoader(TrackLoader):
         logger.info(f"Read {len(gpx.tracks)} tracks with {len(linestrings)} segments")
         return linestrings
 
-
-def _segment_to_linestring(segment: GPXTrackSegment) -> LineStringModel:
-    linestring = LineStringModel(
-        coordinates=[
-            Coordinates(lon=point.longitude, lat=point.latitude, alt=point.elevation)
-            for point in segment.points
-        ],
-        type="LineString",
-        bbox=None,
-    )
-    return linestring
 
 
 def _get_date_from_gpx_segment(segment: GPXTrackSegment) -> dt.datetime | None:
