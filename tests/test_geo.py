@@ -112,3 +112,45 @@ def test_point_anonymization() -> None:
         # We must have at least some points in the neighbourhood that map to
         # the same anonymized point.
         assert nr_equal_points > 1
+
+
+def test_simplification(lancashire_track: LineStringModel) -> None:
+    simplified: LineStringModel = simplify_track(lancashire_track)
+    collection = FeatureCollectionModel(
+        type="FeatureCollection",
+        bbox=None,
+        features=[FeatureModel(type="Feature", geometry=simplified, bbox=None)],
+    )
+
+    geojson: str = collection.model_dump_json(indent=None)
+
+    with open("/tmp/eee.geojson", "w") as f:
+        f.write(geojson)
+
+
+def test_resolution() -> None:
+    loader = GpxTrackLoader()
+    tracks = loader.load_tracks(
+        Path(
+            ""
+        )
+    )
+
+    assert tracks is not None
+    assert len(tracks) == 1
+
+    track = tracks[0][1]
+
+    coords = track.coordinates
+
+    total_distance: float = 0.0
+    distances = []
+    for a, b in zip(coords, coords[1:]):
+        segment_dist = earth_surface_distance_km(a.lat, a.lon, b.lat, b.lon)
+        # print(segment_dist)
+        distances.append(segment_dist)
+        total_distance += segment_dist
+
+    print(total_distance)
+    plt.hist(distances)
+    plt.show()

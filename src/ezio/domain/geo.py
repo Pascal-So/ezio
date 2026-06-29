@@ -264,3 +264,19 @@ def anonymize_point(
     new_lng_deg = math.degrees(new_lng)
 
     return (new_lat_deg, new_lng_deg)
+
+
+def simplify_track(
+    track: LineStringModel, resolution_m: float = 100
+) -> LineStringModel:
+    if len(track.coordinates) == 0:
+        return track
+
+    simplified = []
+
+    coords = track.coordinates
+    initial_lat, initial_lng = anonymize_point(
+        coords[0].lat, coords[0].lon, resolution_m
+    )
+
+    return track
