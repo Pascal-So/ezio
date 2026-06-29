@@ -1,9 +1,18 @@
-from pydantic_geojson import FeatureCollectionModel
+import math
+import random
+from pathlib import Path
+
+import numpy as np
+from pydantic_geojson import FeatureCollectionModel, FeatureModel, LineStringModel
 from pytest import fixture
 
+from ezio.adapters.geojson import GeoJsonTrackLoader
 from ezio.domain.geo import (
+    anonymize_point,
+    earth_surface_distance_km,
     latitude_to_mercator_y,
     merge_bounding_boxes,
+    simplify_track,
     track_length_km,
 )
 from ezio.domain.model import BoundingBox
@@ -14,6 +23,15 @@ def balkan_featurecollection() -> FeatureCollectionModel:
     with open("tests/data/balkan-simplified.geojson") as f:
         collection = FeatureCollectionModel.model_validate_json(f.read())
     return collection
+
+
+@fixture
+def lancashire_track(data_dir: Path) -> LineStringModel:
+    loader = GeoJsonTrackLoader()
+    tracks = loader.load_tracks(data_dir / "lancashire.geojson")
+    assert tracks is not None
+    assert len(tracks) == 1
+    return tracks[0][1]
 
 
 def test_linestring_length(balkan_featurecollection: FeatureCollectionModel) -> None:
@@ -56,3 +74,41 @@ def test_bounding_box_merging() -> None:
 
     merged = merge_bounding_boxes([bbox1, bbox2])
     assert merged == BoundingBox(min_lat=5, max_lat=16, min_lng=20, max_lng=25)
+
+
+def test_point_anonymization() -> None:
+    resolution_m = 100
+
+    random.seed(0)
+
+    for _ in range(100):
+        # TODO: test near 180 deg boundary
+        lat = (random.random() - 0.5) * 179
+        lng = (random.random() - 0.5) * 359
+
+        alat, alng = anonymize_point(lat, lng, resolution_m)
+
+        # Ensure that the anonymized point is close to the input
+        dist_m = earth_surface_distance_km(lat, lng, alat, alng) * 1000
+        assert dist_m < resolution_m * math.sqrt(2)
+
+        # ensure that the function is piecewise constant
+        nr_equal_points = 0
+        for _ in range(50):
+            other_lat = lat + (random.random() - 0.5) * 0.002
+            other_lng = lng + (random.random() - 0.5) * 0.002
+
+            dist_m = earth_surface_distance_km(lat, lng, other_lat, other_lng) * 1000
+            if dist_m < resolution_m * 0.1 or dist_m > resolution_m * 2:
+                # Only look at points that are close to, but not too close to
+                # our original point
+                continue
+
+            other_alat, other_alng = anonymize_point(other_lat, other_lng, resolution_m)
+
+            if np.allclose([alat, alng], [other_alat, other_alng]):
+                nr_equal_points += 1
+
+        # We must have at least some points in the neighbourhood that map to
+        # the same anonymized point.
+        assert nr_equal_points > 1

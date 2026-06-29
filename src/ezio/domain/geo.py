@@ -3,10 +3,12 @@
 import math
 from typing import Literal
 
-
+import gpxpy.geo
 from pydantic_geojson import LineStringModel
 
 from ezio.domain.model import BoundingBox, Tilecoord
+
+EARTH_RADIUS_M = gpxpy.geo.EARTH_RADIUS
 
 
 def latitude_to_mercator_y(lat: float) -> float:
@@ -156,7 +158,9 @@ def earth_surface_distance_km(
         + math.cos(a_lat) * math.cos(b_lat) * math.sin(diff_lng / 2) ** 2
     )
 
-    return 6378.137 * (2 * math.atan2(math.sqrt(temp), math.sqrt(1 - temp)))
+    return (
+        EARTH_RADIUS_M / 1000 * (2 * math.atan2(math.sqrt(temp), math.sqrt(1 - temp)))
+    )
 
 
 def get_elevations(track: LineStringModel) -> list[float] | None:
@@ -203,3 +207,60 @@ def smoothed_elevations(elevations: list[float], box_size: int) -> list[float]:
         chunk = elevations[i : i + box_size]
         smoothed.append(sum(chunk) / len(chunk))
     return smoothed
+
+
+def anonymize_point(
+    lat_deg: float, lng_deg: float, resolution_m: float
+) -> tuple[float, float]:
+    """
+    Get a deterministic point within a given distance of the input point. This
+    function is piecewise constant to avoid leaking information even if the
+    implementation is known.
+    """
+
+    # The idea is we create an orthographic map projection centered around the
+    # rounded coordinates, and then round the position to the resolution grid
+    # in that projected space.
+    #
+    # Rounding in the projected space ensures that the rounding resolution does
+    # not vary by latitude. Rounding the coordinates that we use as the
+    # projection origin ensures that we don't leak the original coordinates from
+    # the way that the rounding grid shifts around.
+    #
+    # https://en.wikipedia.org/wiki/Orthographic_map_projection#Mathematics
+
+    rounded_lat_deg = round(lat_deg)
+    rounded_lng_deg = round(lng_deg)
+
+    lat = math.radians(lat_deg)
+    lng = math.radians(lng_deg)
+    rounded_lat = math.radians(rounded_lat_deg)
+    rounded_lng = math.radians(rounded_lng_deg)
+
+    x = EARTH_RADIUS_M * math.cos(lat) * math.sin(lng - rounded_lng)
+    y = EARTH_RADIUS_M * (
+        math.cos(rounded_lat) * math.sin(lat)
+        - math.sin(rounded_lat) * math.cos(lat) * math.cos(lng - rounded_lng)
+    )
+
+    # snap to the resolution grid
+    rounded_x = round(x / resolution_m) * resolution_m
+    rounded_y = round(y / resolution_m) * resolution_m
+
+    # inverse projection
+    rho = math.hypot(x, y)
+    c = math.asin(rho / EARTH_RADIUS_M)
+    sc = math.sin(c)
+    cc = math.cos(c)
+    new_lat = math.asin(
+        cc * math.sin(rounded_lat) + (rounded_y * sc * math.cos(rounded_lat)) / rho
+    )
+    new_lng = rounded_lng + math.atan2(
+        rounded_x * sc,
+        rho * cc * math.cos(rounded_lat) - rounded_y * sc * math.sin(rounded_lat),
+    )
+
+    new_lat_deg = math.degrees(new_lat)
+    new_lng_deg = math.degrees(new_lng)
+
+    return (new_lat_deg, new_lng_deg)
