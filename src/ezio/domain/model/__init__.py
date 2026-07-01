@@ -26,7 +26,7 @@ class Tilecoord:
 class Coord:
     lat: float
     lng: float
-    alt: float | None
+    alt: float | None = None
 
     def to_geojson(self) -> geojson_base.Coordinates:
         """

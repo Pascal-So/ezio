@@ -1,7 +1,7 @@
 frontend-path-in-package := "src/ezio/domain/generator/frontend/dist"
 
 check:
-    uv run pytest
+    uv run pytest -s --log-cli-level warn
     uv run mypy . --strict
     uv run ruff check
     # todo: eslint & tests

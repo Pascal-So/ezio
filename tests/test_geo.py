@@ -1,9 +1,10 @@
+import datetime as dt
 import math
 import random
 from pathlib import Path
 
 import numpy as np
-from pydantic_geojson import FeatureCollectionModel, FeatureModel, LineStringModel
+from pydantic_geojson import FeatureCollectionModel, FeatureModel
 from pytest import fixture
 
 from ezio.adapters.geojson import GeoJsonTrackLoader
@@ -15,18 +16,19 @@ from ezio.domain.geo import (
     simplify_track,
     track_length_km,
 )
-from ezio.domain.model import BoundingBox
+from ezio.domain.model import BoundingBox, Coord, Track
 
 
 @fixture
-def balkan_featurecollection() -> FeatureCollectionModel:
-    with open("tests/data/balkan-simplified.geojson") as f:
-        collection = FeatureCollectionModel.model_validate_json(f.read())
-    return collection
+def balkan_tracks(data_dir: Path) -> list[tuple[dt.datetime, Track]]:
+    loader = GeoJsonTrackLoader()
+    tracks = loader.load_tracks(data_dir / "balkan-simplified.geojson")
+    assert tracks is not None
+    return tracks
 
 
 @fixture
-def lancashire_track(data_dir: Path) -> LineStringModel:
+def lancashire_track(data_dir: Path) -> Track:
     loader = GeoJsonTrackLoader()
     tracks = loader.load_tracks(data_dir / "lancashire.geojson")
     assert tracks is not None
@@ -34,15 +36,12 @@ def lancashire_track(data_dir: Path) -> LineStringModel:
     return tracks[0][1]
 
 
-def test_linestring_length(balkan_featurecollection: FeatureCollectionModel) -> None:
+def test_linestring_length(balkan_tracks: list[tuple[dt.datetime, Track]]) -> None:
     length_from_qgis: float = 200416.41252514403 / 1000
 
     total_length: float = 0
-    for feature in balkan_featurecollection.features:
-        if feature.geometry is None:
-            continue
-        if feature.geometry.type == "LineString":
-            total_length += track_length_km(feature.geometry)
+    for _, track in balkan_tracks:
+        total_length += track_length_km(track)
 
     # check if the difference to the value computed in QGIS is below 1%
     assert abs(length_from_qgis - total_length) / length_from_qgis < 0.01
@@ -83,30 +82,33 @@ def test_point_anonymization() -> None:
 
     for _ in range(100):
         # TODO: test near 180 deg boundary
-        lat = (random.random() - 0.5) * 179
-        lng = (random.random() - 0.5) * 359
+        input = Coord(
+            lat=(random.random() - 0.5) * 179, lng=(random.random() - 0.5) * 359
+        )
 
-        alat, alng = anonymize_point(lat, lng, resolution_m)
+        anon = anonymize_point(input, resolution_m)
 
         # Ensure that the anonymized point is close to the input
-        dist_m = earth_surface_distance_km(lat, lng, alat, alng) * 1000
+        dist_m = earth_surface_distance_km(input, anon) * 1000
         assert dist_m < resolution_m * math.sqrt(2)
 
         # ensure that the function is piecewise constant
         nr_equal_points = 0
         for _ in range(50):
-            other_lat = lat + (random.random() - 0.5) * 0.002
-            other_lng = lng + (random.random() - 0.5) * 0.002
+            other = Coord(
+                input.lat + (random.random() - 0.5) * 0.002,
+                input.lng + (random.random() - 0.5) * 0.002,
+            )
 
-            dist_m = earth_surface_distance_km(lat, lng, other_lat, other_lng) * 1000
+            dist_m = earth_surface_distance_km(input, other) * 1000
             if dist_m < resolution_m * 0.1 or dist_m > resolution_m * 2:
                 # Only look at points that are close to, but not too close to
                 # our original point
                 continue
 
-            other_alat, other_alng = anonymize_point(other_lat, other_lng, resolution_m)
+            other_anon = anonymize_point(other, resolution_m)
 
-            if np.allclose([alat, alng], [other_alat, other_alng]):
+            if np.allclose([anon.lat, anon.lng], [other_anon.lat, other_anon.lng]):
                 nr_equal_points += 1
 
         # We must have at least some points in the neighbourhood that map to
@@ -114,12 +116,14 @@ def test_point_anonymization() -> None:
         assert nr_equal_points > 1
 
 
-def test_simplification(lancashire_track: LineStringModel) -> None:
-    simplified: LineStringModel = simplify_track(lancashire_track)
+def test_simplification(lancashire_track: Track) -> None:
+    simplified: Track = simplify_track(lancashire_track)
     collection = FeatureCollectionModel(
         type="FeatureCollection",
         bbox=None,
-        features=[FeatureModel(type="Feature", geometry=simplified, bbox=None)],
+        features=[
+            FeatureModel(type="Feature", geometry=simplified.to_geojson(), bbox=None)
+        ],
     )
 
     geojson: str = collection.model_dump_json(indent=None)
@@ -128,29 +132,25 @@ def test_simplification(lancashire_track: LineStringModel) -> None:
         f.write(geojson)
 
 
-def test_resolution() -> None:
-    loader = GpxTrackLoader()
-    tracks = loader.load_tracks(
-        Path(
-            ""
-        )
-    )
+# def test_resolution() -> None:
+#     loader = GpxTrackLoader()
+#     tracks = loader.load_tracks(Path(""))
 
-    assert tracks is not None
-    assert len(tracks) == 1
+#     assert tracks is not None
+#     assert len(tracks) == 1
 
-    track = tracks[0][1]
+#     track = tracks[0][1]
 
-    coords = track.coordinates
+#     coords = track.coords
 
-    total_distance: float = 0.0
-    distances = []
-    for a, b in zip(coords, coords[1:]):
-        segment_dist = earth_surface_distance_km(a.lat, a.lon, b.lat, b.lon)
-        # print(segment_dist)
-        distances.append(segment_dist)
-        total_distance += segment_dist
+#     total_distance: float = 0.0
+#     distances = []
+#     for a, b in zip(coords, coords[1:]):
+#         segment_dist = earth_surface_distance_km(a, b)
+#         # print(segment_dist)
+#         distances.append(segment_dist)
+#         total_distance += segment_dist
 
-    print(total_distance)
-    plt.hist(distances)
-    plt.show()
+#     print(total_distance)
+#     # plt.hist(distances)
+#     # plt.show()
