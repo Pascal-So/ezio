@@ -258,13 +258,31 @@ def anonymize_point(point: Coord, resolution_m: float) -> Coord:
     return Coord(lat=math.degrees(new_lat), lng=math.degrees(new_lng))
 
 
-def simplify_track(track: Track, resolution_m: float = 100) -> Track:
+def simplify_track(
+    track: Track, endpoint_resolution_m: float = 500, resolution_m: float = 200
+) -> Track:
     if len(track.coords) == 0:
         return track
 
     simplified: list[Coord] = []
 
     coords = track.coords
-    initial = anonymize_point(coords[0], resolution_m)
 
-    return track
+    total_distance: float = 0
+    # We run a stronger simplification right at the start to anonymize the
+    # start location.
+    simplified.append(anonymize_point(coords[0], endpoint_resolution_m))
+    last_point_added_distance: float = endpoint_resolution_m
+
+    for a, b in zip(coords, coords[1:]):
+        segment_dist_m = earth_surface_distance_km(a, b) * 1000
+        total_distance += segment_dist_m
+
+        if total_distance > last_point_added_distance + resolution_m:
+            simplified.append(b)
+
+            last_point_added_distance = total_distance
+
+    # TODO: anonymize endpoint
+
+    return Track(simplified)
