@@ -24,8 +24,13 @@ class Tilecoord:
 
 @dataclass
 class Coord:
+    # Latitude in degrees
     lat: float
+
+    # Longitude in degrees
     lng: float
+
+    # Altitude above sea level in metres
     alt: float | None = None
 
     def to_geojson(self) -> geojson_base.Coordinates:

@@ -243,10 +243,20 @@ def anonymize_point(point: Coord, resolution_m: float) -> Coord:
     rounded_y = round(y / resolution_m) * resolution_m
 
     # inverse projection
-    rho = math.hypot(x, y)
+    rho = math.hypot(rounded_x, rounded_y)
     c = math.asin(rho / EARTH_RADIUS_M)
     sc = math.sin(c)
     cc = math.cos(c)
+
+    if rho < 1:
+        # we're basically at the centre of the projection, switch to first-order
+        # taylor approximation
+        m_to_deg = 90 / 1e7
+        return Coord(
+            lat=rounded_lat_deg + rounded_y * m_to_deg,
+            lng=rounded_lng_deg + rounded_x * m_to_deg * math.cos(rounded_lat),
+        )
+
     new_lat = math.asin(
         cc * math.sin(rounded_lat) + (rounded_y * sc * math.cos(rounded_lat)) / rho
     )
@@ -261,6 +271,15 @@ def anonymize_point(point: Coord, resolution_m: float) -> Coord:
 def simplify_track(
     track: Track, endpoint_resolution_m: float = 500, resolution_m: float = 200
 ) -> Track:
+    """
+    Reduce the resolution of the track to save bandwidth and to anonymize some
+    details of the journey.
+
+    The points of the downsampled track are rougly evenly spaced. Note that this
+    spacing is measured along the original track, not necessarily the distance
+    between points in the downsampled track.
+    """
+
     if len(track.coords) == 0:
         return track
 
@@ -272,17 +291,30 @@ def simplify_track(
     # We run a stronger simplification right at the start to anonymize the
     # start location.
     simplified.append(anonymize_point(coords[0], endpoint_resolution_m))
-    last_point_added_distance: float = endpoint_resolution_m
+    downsampled_distance: float = endpoint_resolution_m
 
+    # Select evenly spaced samples from the track.
     for a, b in zip(coords, coords[1:]):
         segment_dist_m = earth_surface_distance_km(a, b) * 1000
         total_distance += segment_dist_m
 
-        if total_distance > last_point_added_distance + resolution_m:
+        if total_distance > downsampled_distance + resolution_m:
             simplified.append(b)
 
-            last_point_added_distance = total_distance
+            downsampled_distance += resolution_m
 
-    # TODO: anonymize endpoint
+    # Anonymize the endpoint by first removing points that are within
+    # `endpoint_resolution_m` of the endpoint and then appending the
+    # anonymized endpoint.
+    distance_to_remove_from_end: float = max(
+        0, endpoint_resolution_m - (total_distance - downsampled_distance)
+    )
+    nr_points_to_remove_from_end: int = math.ceil(
+        distance_to_remove_from_end / resolution_m
+    )
+    simplified = simplified[: max(len(simplified) - nr_points_to_remove_from_end, 1)]
+
+    if len(coords) > 1:
+        simplified.append(anonymize_point(coords[-1], endpoint_resolution_m))
 
     return Track(simplified)

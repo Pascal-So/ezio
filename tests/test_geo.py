@@ -132,6 +132,48 @@ def test_simplification(lancashire_track: Track) -> None:
         f.write(geojson)
 
 
+def points_with_1m_spacing(amount: int) -> Track:
+    """
+    Generate a track with points that are 1 metre apart each.
+    """
+
+    return Track(coords=[Coord(lat=d * 90 / 1e7, lng=0.0) for d in range(amount)])
+
+
+def test_simplify_short_track() -> None:
+    """
+    Simplifying short tracks (shorter than endpoint resolution) should return
+    just a randomized start and end point.
+
+    Simplifying tracks with just a single point should return one single point.
+    """
+
+    track = points_with_1m_spacing(5)
+    simplified = simplify_track(track)
+    assert len(simplified.coords) == 2
+
+    track = points_with_1m_spacing(2)
+    simplified = simplify_track(track)
+    assert len(simplified.coords) == 2
+
+    track = points_with_1m_spacing(1)
+    simplified = simplify_track(track)
+    assert len(simplified.coords) == 1
+
+
+def test_simplification_resolution() -> None:
+    nr_points = 1500
+    endpoint_resolution_m = 100
+    resolution_m = 9.2
+
+    track = points_with_1m_spacing(nr_points)
+    simplified = simplify_track(track, endpoint_resolution_m, resolution_m)
+
+    expected_nr_points = (nr_points - endpoint_resolution_m * 2) / resolution_m
+
+    assert abs(len(simplified.coords) - expected_nr_points) < 4
+
+
 # def test_resolution() -> None:
 #     loader = GpxTrackLoader()
 #     tracks = loader.load_tracks(Path(""))
