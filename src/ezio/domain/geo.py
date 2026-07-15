@@ -4,9 +4,8 @@ import math
 from typing import Literal
 
 import gpxpy.geo
-from pydantic_geojson import LineStringModel
 
-from ezio.domain.model import BoundingBox, Tilecoord
+from ezio.domain.model import BoundingBox, Coord, Tilecoord, Track
 
 EARTH_RADIUS_M = gpxpy.geo.EARTH_RADIUS
 
@@ -53,22 +52,22 @@ def _clamp(val: int, lower: int, upper: int) -> int:
     return min(max(val, lower), upper)
 
 
-def bounding_box(track: LineStringModel) -> BoundingBox:
+def bounding_box(track: Track) -> BoundingBox:
     bbox: BoundingBox | None = None
 
-    for coord in track.coordinates:
+    for coord in track.coords:
         if bbox is None:
             bbox = BoundingBox(
                 min_lat=coord.lat,
                 max_lat=coord.lat,
-                min_lng=coord.lon,
-                max_lng=coord.lon,
+                min_lng=coord.lng,
+                max_lng=coord.lng,
             )
         else:
             bbox.min_lat = min(bbox.min_lat, coord.lat)
             bbox.max_lat = max(bbox.max_lat, coord.lat)
-            bbox.min_lng = min(bbox.min_lng, coord.lon)
-            bbox.max_lng = max(bbox.max_lng, coord.lon)
+            bbox.min_lng = min(bbox.min_lng, coord.lng)
+            bbox.max_lng = max(bbox.max_lng, coord.lng)
 
     if bbox is None:
         raise Exception("Track doesn't contain any coordinates!")
@@ -128,27 +127,25 @@ def nr_coords_on_zoom_level(level: int) -> int:
     return math.floor(2 ** float(level))
 
 
-def track_length_km(linestring: LineStringModel) -> float:
+def track_length_km(track: Track) -> float:
     """Calculates the total length of a LineString in kilometers."""
 
-    coords = linestring.coordinates
+    coords = track.coords
 
     total_distance: float = 0.0
     for a, b in zip(coords, coords[1:]):
-        segment_dist = earth_surface_distance_km(a.lat, a.lon, b.lat, b.lon)
+        segment_dist = earth_surface_distance_km(a, b)
         total_distance += segment_dist
 
     return total_distance
 
 
-def earth_surface_distance_km(
-    a_lat: float, a_lng: float, b_lat: float, b_lng: float
-) -> float:
+def earth_surface_distance_km(a: Coord, b: Coord) -> float:
     # convert everything to radians first
-    a_lat = math.radians(a_lat)
-    a_lng = math.radians(a_lng)
-    b_lat = math.radians(b_lat)
-    b_lng = math.radians(b_lng)
+    a_lat = math.radians(a.lat)
+    a_lng = math.radians(a.lng)
+    b_lat = math.radians(b.lat)
+    b_lng = math.radians(b.lng)
 
     diff_lat: float = a_lat - b_lat
     diff_lng: float = a_lng - b_lng
@@ -163,10 +160,10 @@ def earth_surface_distance_km(
     )
 
 
-def get_elevations(track: LineStringModel) -> list[float] | None:
+def get_elevations(track: Track) -> list[float] | None:
     elevations: list[float] = []
 
-    for coord in track.coordinates:
+    for coord in track.coords:
         if coord.alt is None:
             # If any of the points does not have elevation set then we skip the
             # entire climb calculation
@@ -176,7 +173,7 @@ def get_elevations(track: LineStringModel) -> list[float] | None:
     return elevations
 
 
-def climb(track: LineStringModel) -> float | None:
+def climb(track: Track) -> float | None:
     """
     Calculate the ascent that was climbed during the route, in metres.
     """
@@ -209,9 +206,7 @@ def smoothed_elevations(elevations: list[float], box_size: int) -> list[float]:
     return smoothed
 
 
-def anonymize_point(
-    lat_deg: float, lng_deg: float, resolution_m: float
-) -> tuple[float, float]:
+def anonymize_point(point: Coord, resolution_m: float) -> Coord:
     """
     Get a deterministic point within a given distance of the input point. This
     function is piecewise constant to avoid leaking information even if the
@@ -229,11 +224,15 @@ def anonymize_point(
     #
     # https://en.wikipedia.org/wiki/Orthographic_map_projection#Mathematics
 
-    rounded_lat_deg = round(lat_deg)
-    rounded_lng_deg = round(lng_deg)
+    rounded_lat_deg = round(point.lat)
+    rounded_lng_deg = round(point.lng)
 
-    lat = math.radians(lat_deg)
-    lng = math.radians(lng_deg)
+    rounded_altitude: int | None = (
+        round(point.alt / 10) * 10 if point.alt is not None else None
+    )
+
+    lat = math.radians(point.lat)
+    lng = math.radians(point.lng)
     rounded_lat = math.radians(rounded_lat_deg)
     rounded_lng = math.radians(rounded_lng_deg)
 
@@ -248,10 +247,23 @@ def anonymize_point(
     rounded_y = round(y / resolution_m) * resolution_m
 
     # inverse projection
-    rho = math.hypot(x, y)
+    rho = math.hypot(rounded_x, rounded_y)
     c = math.asin(rho / EARTH_RADIUS_M)
     sc = math.sin(c)
     cc = math.cos(c)
+
+    if rho < 1:
+        # We're basically at the centre of the projection. Here we could switch
+        # to a first-order Taylor approximation, but note that if rho is small
+        # then it has to be zero due to the rounding above. Therefore, this
+        # reduces to just returning the projection centre (effectively the
+        # zeroth-order approximation).
+        return Coord(
+            lat=rounded_lat_deg,
+            lng=rounded_lng_deg,
+            alt=rounded_altitude,
+        )
+
     new_lat = math.asin(
         cc * math.sin(rounded_lat) + (rounded_y * sc * math.cos(rounded_lat)) / rho
     )
@@ -260,7 +272,61 @@ def anonymize_point(
         rho * cc * math.cos(rounded_lat) - rounded_y * sc * math.sin(rounded_lat),
     )
 
-    new_lat_deg = math.degrees(new_lat)
-    new_lng_deg = math.degrees(new_lng)
+    return Coord(
+        lat=math.degrees(new_lat),
+        lng=math.degrees(new_lng),
+        alt=rounded_altitude,
+    )
 
-    return (new_lat_deg, new_lng_deg)
+
+def simplify_track(
+    track: Track, endpoint_resolution_m: float = 500, resolution_m: float = 200
+) -> Track:
+    """
+    Reduce the resolution of the track to save bandwidth and to anonymize some
+    details of the journey.
+
+    The points of the downsampled track are rougly evenly spaced. Note that this
+    spacing is measured along the original track, not necessarily the distance
+    between points in the downsampled track.
+    """
+
+    if len(track.coords) == 0:
+        return track
+
+    simplified: list[Coord] = []
+
+    coords = track.coords
+
+    total_distance: float = 0
+    # We run a stronger simplification right at the start to anonymize the
+    # start location.
+    simplified.append(anonymize_point(coords[0], endpoint_resolution_m))
+    downsampled_distance: float = endpoint_resolution_m
+
+    # Select evenly spaced samples from the track.
+    for a, b in zip(coords, coords[1:]):
+        segment_dist_m = earth_surface_distance_km(a, b) * 1000
+        total_distance += segment_dist_m
+
+        if total_distance > downsampled_distance + resolution_m:
+            simplified.append(b)
+            # todo: take average elevation over the skipped range
+
+            downsampled_distance += resolution_m
+
+    # Anonymize the endpoint by first removing points that are within
+    # `endpoint_resolution_m` of the endpoint and then appending the
+    # anonymized endpoint.
+    distance_to_remove_from_end: float = max(
+        0, endpoint_resolution_m - (total_distance - downsampled_distance)
+    )
+    nr_points_to_remove_from_end: int = math.ceil(
+        distance_to_remove_from_end / resolution_m
+    )
+    simplified = simplified[: max(len(simplified) - nr_points_to_remove_from_end, 1)]
+
+    if len(coords) > 1:
+        simplified.append(anonymize_point(coords[-1], endpoint_resolution_m))
+
+    return Track(simplified)

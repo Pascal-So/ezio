@@ -5,13 +5,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from pydantic_geojson import LineStringModel
 
 from ezio.domain.geo import (
     earth_surface_distance_km,
     get_elevations,
     smoothed_elevations,
 )
+from ezio.domain.model import Track
 
 
 def setup_plot_style(ax: Axes) -> None:
@@ -34,7 +34,7 @@ def setup_plot_style(ax: Axes) -> None:
 
 
 def extract_xy(
-    tracks: list[LineStringModel], smoothing_size: int
+    tracks: list[Track], smoothing_size: int
 ) -> tuple[list[float], list[float]]:
     """
     Given multiple tracks, merge them all together and return the distances as
@@ -57,11 +57,11 @@ def extract_xy(
 
         distances: list[float] = []
 
-        coords = track.coordinates
+        coords = track.coords
 
         for a, b in zip(coords, coords[1:]):
             distances.append(total_distance)
-            segment_dist = earth_surface_distance_km(a.lat, a.lon, b.lat, b.lon)
+            segment_dist = earth_surface_distance_km(a, b)
             total_distance += segment_dist
 
         distances.append(total_distance)
@@ -113,7 +113,7 @@ def get_plot_bounds(elevations: list[float]) -> PlotBounds:
     )
 
 
-def plot_segment(segment: list[LineStringModel], output_path: Path) -> None:
+def plot_segment(segment: list[Track], output_path: Path) -> None:
     smoothing_size = 15
     x, y = extract_xy(segment, smoothing_size)
 

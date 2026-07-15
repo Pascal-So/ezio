@@ -4,8 +4,11 @@ import re
 from pathlib import Path
 from typing import override
 
-from pydantic_geojson import FeatureCollectionModel, FeatureModel, LineStringModel
+import pydantic_geojson._base as geojson_base
+from pydantic_geojson import FeatureCollectionModel, FeatureModel
+from pydantic_geojson.multi_line_string import LineStringCoordinates
 
+from ezio.domain.model import Coord, Track
 from ezio.ports.tracksource import TrackLoader
 
 logger = logging.getLogger(__name__)
@@ -15,9 +18,7 @@ class GeoJsonTrackLoader(TrackLoader):
     """Load track segments from a GeoJson file"""
 
     @override
-    def load_tracks(
-        self, file_path: Path
-    ) -> list[tuple[dt.datetime, LineStringModel]] | None:
+    def load_tracks(self, file_path: Path) -> list[tuple[dt.datetime, Track]] | None:
         if not file_path.is_file() or file_path.suffix != ".geojson":
             return None
 
@@ -34,7 +35,7 @@ class GeoJsonTrackLoader(TrackLoader):
 
         filename_date = _get_date_from_filename(file_path.name)
 
-        linestrings: list[tuple[dt.datetime, LineStringModel]] = []
+        linestrings: list[tuple[dt.datetime, Track]] = []
         for feature_idx, feature in enumerate(feature_collection.features):
             geometry = feature.geometry
             if geometry is None:
@@ -64,14 +65,10 @@ class GeoJsonTrackLoader(TrackLoader):
                 continue
 
             if geometry.type == "LineString":
-                linestrings.append((datetime, geometry))
+                linestrings.append((datetime, track_from_geojson(geometry.coordinates)))
             else:
                 for linestring in geometry.coordinates:
-                    linestringmodel = LineStringModel(
-                        type="LineString", coordinates=linestring, bbox=None
-                    )
-
-                    linestrings.append((datetime, linestringmodel))
+                    linestrings.append((datetime, track_from_geojson(linestring)))
 
         logger.info(f"Read {len(linestrings)} LineString features")
         return linestrings
@@ -117,3 +114,11 @@ def _get_date_from_filename(filename: str) -> dt.date | None:
     except ValueError:
         # The matched string was not a valid date (e.g., '2023-13-40')
         return None
+
+
+def coord_from_geojson(coord: geojson_base.Coordinates) -> Coord:
+    return Coord(coord.lat, coord.lon, coord.alt)
+
+
+def track_from_geojson(coords: LineStringCoordinates) -> Track:
+    return Track(coords=[coord_from_geojson(coord) for coord in coords])

@@ -4,8 +4,6 @@ from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic_geojson import LineStringModel
-
 from ezio.adapters.photo_source import load_photo  # todo: put this behind a port
 from ezio.domain.generator import write_geojson_files
 from ezio.domain.generator.frontend import copy_frontend
@@ -24,6 +22,7 @@ from ezio.domain.model import (
     PhotoInfo,
     SegmentInfo,
     Tilecoord,
+    Track,
     load_existing_data,
 )
 from ezio.ports.progress import Progress
@@ -170,7 +169,7 @@ def run_wizard(
 @dataclass
 class Inputs:
     photos: list[tuple[dt.datetime, Path]]
-    tracks: list[tuple[dt.datetime, LineStringModel]]
+    tracks: list[tuple[dt.datetime, Track]]
 
 
 def all_files(path: Path) -> Iterable[Path]:
@@ -327,9 +326,9 @@ def sort_photos(photos: list[tuple[dt.datetime, Path]]) -> None:
 
 
 def group_tracks_by_date(
-    tracks: list[tuple[dt.datetime, LineStringModel]],
-) -> dict[dt.date, list[LineStringModel]]:
-    tracks_by_date: dict[dt.date, list[LineStringModel]] = {}
+    tracks: list[tuple[dt.datetime, Track]],
+) -> dict[dt.date, list[Track]]:
+    tracks_by_date: dict[dt.date, list[Track]] = {}
 
     # TODO: figure out time sorting stuff.
     #       Problem 1: track might not have tz info?
