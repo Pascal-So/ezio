@@ -10,6 +10,7 @@ import datetime as dt
 
 from pydantic_geojson import FeatureCollectionModel, FeatureModel
 
+from ezio.domain.geo import simplify_track
 from ezio.domain.model import OutputDirectory, Track
 
 
@@ -23,7 +24,13 @@ def write_geojson_files(
         collection = FeatureCollectionModel(
             type="FeatureCollection",
             features=[
-                FeatureModel(type="Feature", geometry=track.to_geojson(), bbox=None)
+                FeatureModel(
+                    type="Feature",
+                    # TODO: call track simplification before passing data
+                    # into write_geojson_files
+                    geometry=simplify_track(track).to_geojson(),
+                    bbox=None,
+                )
                 for track in tracks
             ],
             bbox=None,

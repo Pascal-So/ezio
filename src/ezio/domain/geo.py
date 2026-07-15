@@ -227,6 +227,10 @@ def anonymize_point(point: Coord, resolution_m: float) -> Coord:
     rounded_lat_deg = round(point.lat)
     rounded_lng_deg = round(point.lng)
 
+    rounded_altitude: int | None = (
+        round(point.alt / 10) * 10 if point.alt is not None else None
+    )
+
     lat = math.radians(point.lat)
     lng = math.radians(point.lng)
     rounded_lat = math.radians(rounded_lat_deg)
@@ -249,12 +253,15 @@ def anonymize_point(point: Coord, resolution_m: float) -> Coord:
     cc = math.cos(c)
 
     if rho < 1:
-        # we're basically at the centre of the projection, switch to first-order
-        # taylor approximation
-        m_to_deg = 90 / 1e7
+        # We're basically at the centre of the projection. Here we could switch
+        # to a first-order Taylor approximation, but note that if rho is small
+        # then it has to be zero due to the rounding above. Therefore, this
+        # reduces to just returning the projection centre (effectively the
+        # zeroth-order approximation).
         return Coord(
-            lat=rounded_lat_deg + rounded_y * m_to_deg,
-            lng=rounded_lng_deg + rounded_x * m_to_deg * math.cos(rounded_lat),
+            lat=rounded_lat_deg,
+            lng=rounded_lng_deg,
+            alt=rounded_altitude,
         )
 
     new_lat = math.asin(
@@ -265,7 +272,11 @@ def anonymize_point(point: Coord, resolution_m: float) -> Coord:
         rho * cc * math.cos(rounded_lat) - rounded_y * sc * math.sin(rounded_lat),
     )
 
-    return Coord(lat=math.degrees(new_lat), lng=math.degrees(new_lng))
+    return Coord(
+        lat=math.degrees(new_lat),
+        lng=math.degrees(new_lng),
+        alt=rounded_altitude,
+    )
 
 
 def simplify_track(
@@ -300,6 +311,7 @@ def simplify_track(
 
         if total_distance > downsampled_distance + resolution_m:
             simplified.append(b)
+            # todo: take average elevation over the skipped range
 
             downsampled_distance += resolution_m
 
