@@ -45,14 +45,14 @@ function InfoOverlay({
         <div className="text-slate-500 text-sm">
           <DetailWithIcon
             icon={RulerIcon}
-            text={`${segment.dist.toFixed(2)}km`}
+            text={`${segment.dist.toFixed(0)}km`}
             title="Distance"
           />
 
           {segment.climb !== undefined && (
             <DetailWithIcon
               icon={MountainsIcon}
-              text={`${segment.climb.toFixed(2)}m`}
+              text={`${segment.climb.toFixed(0)}m`}
               title="Climb"
             />
           )}
