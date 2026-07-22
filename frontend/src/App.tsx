@@ -90,8 +90,10 @@ const App: FC<AppProps> = ({
             setImageIndex(segments[selectedSegment].imageIndex)
           }
           segment={segments[selectedSegment]}
-          moveToPrevSegment={move(-1)}
-          moveToNextSegment={move(1)}
+          moveToPrevSegment={selectedSegment > 0 ? move(-1) : undefined}
+          moveToNextSegment={
+            selectedSegment + 1 < segments.length ? move(1) : undefined
+          }
         />
       ) : null}
 

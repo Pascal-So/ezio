@@ -5,8 +5,8 @@ import MountainsIcon from "../assets/mountains.svg";
 
 type InfoOverlayProps = {
   segment: SegmentInfo;
-  moveToNextSegment: () => void;
-  moveToPrevSegment: () => void;
+  moveToNextSegment: (() => void) | undefined;
+  moveToPrevSegment: (() => void) | undefined;
   openPhotoGallery: () => void;
 };
 
@@ -114,16 +114,18 @@ function DetailWithIcon({ icon, text, title }: DetailWithIconProps) {
 type ArrowProps = {
   direction: "left" | "right";
   title: string;
-  onClick: () => void;
+  onClick: (() => void) | undefined;
 };
 
 function Arrow({ direction, title, onClick }: ArrowProps) {
   const arrowChar = direction === "left" ? "&#10094" : "&#10095";
   const padding = direction === "left" ? "pr-2" : "pl-2";
 
+  const disabled = onClick === undefined;
+
   return (
     <span
-      className={`select-none cursor-pointer ${padding}`}
+      className={`select-none ${disabled ? "text-slate-400" : "cursor-pointer"} ${padding}`}
       onClick={onClick}
       dangerouslySetInnerHTML={{ __html: arrowChar }}
       title={title}
