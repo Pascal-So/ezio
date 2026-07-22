@@ -35,7 +35,7 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
 
     output_dir = OutputDirectory(tempdir)
     run_wizard(
-        [data_dir],
+        [data_dir / "balkan-simplified.gpx"],
         output_dir,
         [GpxTrackLoader()],
         FakeTiles(),
@@ -63,6 +63,36 @@ def test_wizard_end_to_end(data_dir: Path, tempdir: Path) -> None:
         for photo in data.photos:
             assert (output_dir.thumbs_dir / photo.filename).is_file()
             assert (output_dir.photos_dir / photo.filename).is_file()
+
+
+def test_wizard_end_to_end_without_altitude(data_dir: Path, tempdir: Path) -> None:
+    descriptions = {"2022-10-07": "Description for the first day"}
+
+    output_dir = OutputDirectory(tempdir)
+    run_wizard(
+        [data_dir / "balkan-simplified-without-altitude.gpx"],
+        output_dir,
+        [GpxTrackLoader()],
+        FakeTiles(),
+        MockProgress(),
+        MockSegmentInfoSource(descriptions),
+        None,
+        None,
+        None,
+    )
+
+    # Check data.json
+    assert output_dir.json_path.is_file()
+    with open(output_dir.json_path) as f:
+        data = Data.model_validate_json(f.read())
+
+        assert len(data.segments) == 3
+
+        for seg in data.segments:
+            # Check that all segments actually exist as files
+            assert (output_dir.tracks_dir / f"{seg.date}.geojson").is_file()
+
+            assert seg.climb_m is None
 
 
 def test_wizard_without_any_tracks(tempdir: Path) -> None:

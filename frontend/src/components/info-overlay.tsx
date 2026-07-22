@@ -59,11 +59,13 @@ function InfoOverlay({
         </div>
       </div>
 
-      <img
-        title="Elevation"
-        alt="Plot of the elevation over the course of the day"
-        src={`img/plots/${segment.date}.svg`}
-      />
+      {segment.climb !== undefined && (
+        <img
+          title="Elevation"
+          alt="Plot of the elevation over the course of the day"
+          src={`img/plots/${segment.date}.svg`}
+        />
+      )}
     </div>
   );
 }

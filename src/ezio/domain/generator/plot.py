@@ -35,7 +35,7 @@ def setup_plot_style(ax: Axes) -> None:
 
 def extract_xy(
     tracks: list[Track], smoothing_size: int
-) -> tuple[list[float], list[float]]:
+) -> tuple[list[float], list[float]] | None:
     """
     Given multiple tracks, merge them all together and return the distances as
     x and elevations as y data.
@@ -52,8 +52,7 @@ def extract_xy(
     for track in tracks:
         elevations = get_elevations(track)
         if elevations is None:
-            # TODO: handle this exception somewhere
-            raise Exception("Track does not contain elevation data")
+            return None
 
         distances: list[float] = []
 
@@ -115,7 +114,14 @@ def get_plot_bounds(elevations: list[float]) -> PlotBounds:
 
 def plot_segment(segment: list[Track], output_path: Path) -> None:
     smoothing_size = 15
-    x, y = extract_xy(segment, smoothing_size)
+    xy = extract_xy(segment, smoothing_size)
+
+    if xy is None:
+        # If some elevation data is missing then we can't plot the altitudes
+        # for that segment.
+        return None
+
+    x, y = xy
 
     bounds = get_plot_bounds(y)
 
