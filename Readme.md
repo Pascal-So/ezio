@@ -16,8 +16,8 @@ to see a pretty map of it? Pretty much the same thing if you ask me.
 This tool takes photos and routes as input. All input files should be placed
 in an input directory. The tool will check all files in the input directory
 including subdirectories, ignore unrecognized files, and load photos and route
-data. Only [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) files are
-supported as track source for now.
+data. [GPX](https://en.wikipedia.org/wiki/GPS_Exchange_Format) and [GeoJSON](https://en.wikipedia.org/wiki/GeoJSON)
+files are supported as track source for now.
 
 ```bash
 # Assuming that ./input-directory/ contains your photos and .gpx files
@@ -52,8 +52,8 @@ python -m http.server
 On Arch Linux:
 
 ```bash
-wget https://github.com/Pascal-So/ezio/releases/download/v0.1.0/ezio-0.1.0-1-any.pkg.tar.zst
-sudo pacman -U ezio-0.1.0-1-any.pkg.tar.zst
+wget https://github.com/Pascal-So/ezio/releases/download/v0.2.0/ezio-0.2.0-1-any.pkg.tar.zst
+sudo pacman -U ezio-0.2.0-1-any.pkg.tar.zst
 ```
 
 On other distros you might want to check out the Python wheel contained in the [release on GitHub](https://github.com/Pascal-So/ezio/releases).

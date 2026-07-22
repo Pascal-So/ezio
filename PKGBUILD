@@ -1,6 +1,6 @@
 # Maintainer: Pascal Sommer
 pkgname=ezio
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Static site generator for GPS routes"
 arch=(any)

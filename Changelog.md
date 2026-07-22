@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.1 - UNRELEASED
+## v0.2.0 - 2026-07-22
 
 * Plot elevation
 * Improve `--help` text
@@ -10,7 +10,7 @@
 * Don't re-generate photos that are already present in the output directory
 * Accept multiple input paths which can now be either directories or files
 * Show more information during the generator process (nr. photos per day, nr. skipped tiles)
-* Print total distance in the end
+* Print total distance upon wizard completion
 
 ## v0.1.0 - 2026-05-02
 
