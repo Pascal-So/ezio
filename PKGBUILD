@@ -14,6 +14,7 @@ depends=(
     python-rich
     python-pydantic
     python-textual
+    python-matplotlib
 )
 makedepends=(
     python-build
@@ -43,7 +44,7 @@ prepare() {
     cd "${pkgname}-${pkgver}"
 
     # vendor pydantic-geojson
-    find ./src -type f -print0 | xargs -0 sed -i 's/^from pydantic_geojson/from ezio.pydantic_geojson/'
+    find ./src -type f -print0 | xargs -0 sed -i -E 's/^(from|import) pydantic_geojson/\1 ezio.pydantic_geojson/'
     cp -r "../pydantic-geojson-${_geojson_version}/pydantic_geojson" "src/${pkgname}/pydantic_geojson"
 
     # copy the frontend into the package
