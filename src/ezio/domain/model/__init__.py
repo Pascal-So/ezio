@@ -129,8 +129,8 @@ class OutputDirectory(Path):
         return self / "img" / "plots"
 
     @property
-    def tracks_dir(self) -> Path:
-        return self / "tracks"
+    def segments_path(self) -> Path:
+        return self / "segments.geojson"
 
     @property
     def background_segments_dir(self) -> Path:
@@ -148,7 +148,6 @@ class OutputDirectory(Path):
         self.thumbs_dir.mkdir(parents=True, exist_ok=True)
         self.tiles_dir.mkdir(parents=True, exist_ok=True)
         self.plots_dir.mkdir(parents=True, exist_ok=True)
-        self.tracks_dir.mkdir(parents=True, exist_ok=True)
         self.background_segments_dir.mkdir(parents=True, exist_ok=True)
 
 
