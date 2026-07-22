@@ -117,7 +117,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     # 2 on 2022-10-11
 
     inputs = load_input_files(
-        [data_dir],
+        [data_dir / "balkan-simplified.gpx"],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=dt.date(2022, 10, 11),
@@ -126,7 +126,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     assert len(inputs.tracks) == 2
 
     inputs = load_input_files(
-        [data_dir],
+        [data_dir / "balkan-simplified.gpx"],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=dt.date(2022, 10, 7),
@@ -135,7 +135,7 @@ def test_tracks_outside_date_range_are_ignored(data_dir: Path) -> None:
     assert len(inputs.tracks) == 6
 
     inputs = load_input_files(
-        [data_dir],
+        [data_dir / "balkan-simplified.gpx"],
         [GpxTrackLoader()],
         MockProgress(),
         start_date=None,
