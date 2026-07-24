@@ -104,7 +104,6 @@ class Data(BaseModel):
     segments: list[SegmentInfo]
     photos: list[PhotoInfo]
     background_segments: list[str]
-    total_bounding_box: BoundingBox
     max_zoom_level: int
 
 
