@@ -1,6 +1,6 @@
 import datetime as dt
 
-from ezio.domain.model import BoundingBox, SegmentInfo
+from ezio.domain.model import SegmentInfo
 
 
 def make_segment(
@@ -12,5 +12,4 @@ def make_segment(
         dist_km=1,
         climb_m=1,
         featured_photo=featured_photo,
-        bounding_box=BoundingBox(min_lat=0, min_lng=0, max_lat=0, max_lng=0),
     )

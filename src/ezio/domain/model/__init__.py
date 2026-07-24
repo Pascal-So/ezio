@@ -97,7 +97,6 @@ class SegmentInfo(BaseModel):
     dist_km: float
     climb_m: float | None
     featured_photo: str | None
-    bounding_box: BoundingBox
     nr_photos: int | None = Field(default=None)
 
 
@@ -191,7 +190,6 @@ def load_existing_data(json_path: Path) -> ExistingData:
                 dist_km=old_segment.dist,
                 climb_m=old_segment.climb,
                 featured_photo=old_segment.feat,
-                bounding_box=BoundingBox(min_lat=0, max_lat=0, min_lng=0, max_lng=0),
                 nr_photos=None,
             )
 

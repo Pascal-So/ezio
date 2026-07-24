@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 class Statistics:
     segments: dict[dt.date, SegmentInfo]
     total_distance_km: float
+    bounding_boxes: dict[dt.date, BoundingBox]
     total_bounding_box: BoundingBox
 
 
@@ -47,6 +48,8 @@ def compute_statistics(
 ) -> Statistics:
     segments: dict[dt.date, SegmentInfo] = {}
     total_distance_km: float = 0
+
+    bounding_boxes: dict[dt.date, BoundingBox] = {}
 
     for date, tracks in tracks_by_date.items():
         distance_km: float = 0
@@ -74,11 +77,11 @@ def compute_statistics(
             dist_km=distance_km,
             climb_m=climb_m,
             featured_photo=None,
-            bounding_box=bbox,
         )
+        bounding_boxes[date] = bbox
 
-    total_bbox = merge_bounding_boxes([seg.bounding_box for seg in segments.values()])
-    return Statistics(segments, total_distance_km, total_bbox)
+    total_bbox = merge_bounding_boxes(bounding_boxes.values())
+    return Statistics(segments, total_distance_km, bounding_boxes, total_bbox)
 
 
 def run_wizard(
@@ -113,14 +116,11 @@ def run_wizard(
         date: [simplify_track(track) for track in tracks]
         for date, tracks in tracks_by_date.items()
     }
-    bounding_boxes = {
-        date: seg.bounding_box for date, seg in statistics.segments.items()
-    }
 
     write_geojson_files(
         output_directory,
         anonymized_tracks,
-        bounding_boxes,
+        statistics.bounding_boxes,
         statistics.total_bounding_box,
     )
 

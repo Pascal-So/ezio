@@ -8,7 +8,6 @@ more abstraction than what it's worth.
 
 import datetime as dt
 
-
 import pydantic_geojson._base as geojson_base
 from pydantic_geojson import FeatureCollectionModel, FeatureModel, MultiLineStringModel
 

@@ -1,4 +1,4 @@
-import type { FeatureCollection, MultiLineString, Point } from "geojson";
+import type { FeatureCollection, GeoJsonObject, Point } from "geojson";
 import L, { LatLng, latLng, LatLngBounds, latLngBounds } from "leaflet";
 import { useEffect, useImperativeHandle, type Ref } from "react";
 import {
@@ -9,7 +9,7 @@ import {
   LayerGroup,
 } from "react-leaflet";
 
-import type { BoundingBox, Segment, SegmentGeometry } from "../types";
+import type { BackgroundSegmentGeometry, BoundingBox, Segment } from "../types";
 
 export type PannableMap = { panTo: (segmentIndex: number) => void };
 
@@ -18,7 +18,7 @@ type MapViewProps = {
   totalBoundingBox: BoundingBox;
   selectedSegment: number | null;
   setSelectedSegment: (id: number | null) => void;
-  backgroundSegments: FeatureCollection<MultiLineString>[];
+  backgroundSegments: BackgroundSegmentGeometry[];
   stays: FeatureCollection<Point> | null;
   maxZoom: number;
   ref: Ref<PannableMap>;
@@ -154,7 +154,7 @@ function MapContents({
 }
 
 type SegmentProps = {
-  segment: SegmentGeometry;
+  segment: GeoJsonObject;
   index: number;
   isSelected: boolean;
   select: () => void;
@@ -196,7 +196,7 @@ function Segment({ segment, index, isSelected, select }: SegmentProps) {
 }
 
 type BackgroundSegmentProps = {
-  segment: SegmentGeometry;
+  segment: GeoJsonObject;
   index: number;
 };
 
