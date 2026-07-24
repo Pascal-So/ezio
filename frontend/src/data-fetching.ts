@@ -1,10 +1,12 @@
 import * as z from "zod/mini";
 import type {
+  BackgroundSegmentGeometry,
   BoundingBox,
   Data,
   PhotoInfo,
   PointsGeometry,
   Segment,
+  SegmentGeometries,
   SegmentGeometry,
   SegmentInfo,
 } from "./types";
@@ -14,16 +16,32 @@ import type {
  * that we need in the frontend.
  */
 export async function fetchAllData(): Promise<Data> {
-  const rawData = await fetch("data.json").then((res) => res.json());
+  const rawData = await fetchJson("data.json");
   const data: JsonData = parseData(rawData);
 
-  const [geojsons, backgroundSegments, stays] = await Promise.all([
-    fetchSegments(data),
+  const [segmentGeometries, backgroundSegments, stays] = await Promise.all([
+    fetchSegmentGeometries(),
     fetchBackgroundSegments(data),
     fetchStays(),
   ]);
 
   const segments: Segment[] = [];
+
+  const segmentGeometryByDate = new Map<
+    string,
+    [SegmentGeometry, BoundingBox]
+  >();
+  for (const feature of segmentGeometries.features) {
+    if (typeof feature.id !== "string" || feature.bbox === undefined) {
+      console.log(
+        `skipping segment feature with id ${feature.id} and bounding box ${feature.bbox}`,
+      );
+      continue;
+    }
+    const bbox = convertBboxFromGeojson(feature.bbox);
+
+    segmentGeometryByDate.set(feature.id, [feature.geometry, bbox]);
+  }
 
   const photoIndexByFilename = new Map<string, number>();
   for (const [index, photo] of data.photos.entries()) {
@@ -53,10 +71,18 @@ export async function fetchAllData(): Promise<Data> {
       imageIndex = firstPhotoIndexByDate.get(segmentInfo.date) ?? null;
     }
 
+    let geometry = segmentGeometryByDate.get(segmentInfo.date);
+    if (geometry === undefined) {
+      console.warn(
+        `skipping segment ${segmentInfo.date} because the geojson data does not contain that feature`,
+      );
+      continue;
+    }
     let segment = {
       ...segmentInfo,
+      boundingBox: geometry[1],
       imageIndex,
-      geometry: geojsons[idx],
+      geometry: geometry[0],
     };
     if (imageIndex !== null) {
       segment.featuredPhotoFilename = data.photos[imageIndex].filename;
@@ -66,14 +92,54 @@ export async function fetchAllData(): Promise<Data> {
     idx += 1;
   }
 
+  // Try to get the combined bounding box from the geojson, falling back to
+  // the field in data.json.
+  let totalBoundingBox =
+    segmentGeometries.bbox !== undefined
+      ? convertBboxFromGeojson(segmentGeometries.bbox)
+      : data.totalBoundingBox;
+
+  if (totalBoundingBox === undefined) {
+    console.warn(
+      "Could not get bounding box from geojson or data.json, falling back to hardcoded value instead",
+    );
+    totalBoundingBox = {
+      minLng: -179,
+      minLat: -86,
+      maxLng: 179,
+      maxLat: 86,
+    };
+  }
+
   return {
     segments,
     photos: data.photos,
     backgroundSegments,
     stays,
-    totalBoundingBox: data.totalBoundingBox,
+    totalBoundingBox,
     maxZoomLevel: data.maxZoomLevel,
   };
+}
+
+function convertBboxFromGeojson(geojson_bbox: number[]): BoundingBox {
+  switch (geojson_bbox.length) {
+    case 4:
+      return {
+        minLng: geojson_bbox[0],
+        minLat: geojson_bbox[1],
+        maxLng: geojson_bbox[2],
+        maxLat: geojson_bbox[3],
+      };
+    case 6:
+      return {
+        minLng: geojson_bbox[0],
+        minLat: geojson_bbox[1],
+        maxLng: geojson_bbox[3],
+        maxLat: geojson_bbox[4],
+      };
+  }
+
+  throw new Error(`bounding box must contain 4 or 6 numbers: ${geojson_bbox}`);
 }
 
 export function thumbnailPath(filename: string): string {
@@ -104,7 +170,6 @@ function parseData(raw: any): JsonData {
     dist_km: z.number(),
     climb_m: z.optional(z.number()),
     featured_photo: z.nullable(z.string()),
-    bounding_box: boundingBoxSchema,
   });
   const schema = z.object({
     segments: z.array(segmentInfoSchema),
@@ -126,7 +191,6 @@ function parseData(raw: any): JsonData {
       dist: seg.dist_km,
       climb: seg.climb_m,
       featuredPhotoFilename: seg.featured_photo || null,
-      boundingBox: convertBoundingBox(seg.bounding_box),
     })),
     photos: parsed.photos.map((photo) => ({
       filename: photo.filename,
@@ -154,37 +218,49 @@ function convertBoundingBox(bbox: {
   };
 }
 
-async function fetchSegments(data: JsonData): Promise<SegmentGeometry[]> {
-  return await Promise.all(
-    data.segments.map((segment) =>
-      fetch(`tracks/${segment.date}.geojson`).then((res) => res.json()),
-    ),
-  );
+async function fetchSegmentGeometries(): Promise<SegmentGeometries> {
+  return await fetchJson("segments.geojson");
 }
 
 async function fetchBackgroundSegments(
   data: JsonData,
-): Promise<SegmentGeometry[]> {
-  return await Promise.all(
+): Promise<BackgroundSegmentGeometry[]> {
+  const backgroundSegments = await Promise.all(
     (data.backgroundSegments || []).map((segment) =>
-      fetch(`background-segments/${segment}.geojson`).then((res) => res.json()),
+      fetchJson(`background-segments/${segment}.geojson`).catch((e) => {
+        console.warn(e);
+        return null;
+      }),
     ),
   );
+
+  // We just skip missing background segment since we've already
+  // logged the error.
+  return backgroundSegments.filter((segment) => segment !== null);
 }
 
 async function fetchStays(): Promise<PointsGeometry | null> {
-  const staysResponse = await fetch("stays.geojson");
-  if (staysResponse.ok) {
-    return await staysResponse.json();
-  }
-
-  return null;
+  return await fetchJson("stays.geojson").catch((e) => {
+    console.warn(e);
+    return null;
+  });
 }
 
+async function fetchJson(url: string): Promise<any> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(
+      `Cannot load ${url}: Request failed with status ${res.status} - ${res.statusText}`,
+    );
+  }
+  return res.json().catch((e) => {
+    throw new Error(`Cannot parse JSON from ${url}: ${e}`);
+  });
+}
 type JsonData = {
   segments: SegmentInfo[];
   photos: PhotoInfo[];
   backgroundSegments: string[];
-  totalBoundingBox: BoundingBox;
+  totalBoundingBox?: BoundingBox;
   maxZoomLevel: number;
 };

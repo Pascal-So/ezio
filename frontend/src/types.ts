@@ -1,11 +1,21 @@
-import type { FeatureCollection, MultiLineString, Point } from "geojson";
+import type {
+  FeatureCollection,
+  LineString,
+  MultiLineString,
+  Point,
+} from "geojson";
 
-export type SegmentGeometry = FeatureCollection<MultiLineString>;
+export type SegmentGeometries = FeatureCollection<MultiLineString>;
+export type SegmentGeometry = MultiLineString;
+export type BackgroundSegmentGeometry = FeatureCollection<
+  MultiLineString | LineString
+>;
 export type PointsGeometry = FeatureCollection<Point>;
 
 export type Segment = SegmentInfo & {
   imageIndex: number | null;
   geometry: SegmentGeometry;
+  boundingBox: BoundingBox;
 };
 
 export type SegmentInfo = {
@@ -19,8 +29,6 @@ export type SegmentInfo = {
   climb: number | undefined;
 
   featuredPhotoFilename: string | null;
-
-  boundingBox: BoundingBox;
 };
 
 export type Resolution = {
@@ -45,7 +53,7 @@ export type BoundingBox = {
 export type Data = {
   segments: Segment[];
   photos: PhotoInfo[];
-  backgroundSegments: SegmentGeometry[];
+  backgroundSegments: BackgroundSegmentGeometry[];
   stays: PointsGeometry | null;
   totalBoundingBox: BoundingBox;
   maxZoomLevel: number;

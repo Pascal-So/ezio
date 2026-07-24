@@ -1,5 +1,6 @@
 """Coordinates calculations n stuff"""
 
+from collections.abc import Iterable
 import math
 from typing import Literal
 
@@ -75,7 +76,7 @@ def bounding_box(track: Track) -> BoundingBox:
     return bbox
 
 
-def merge_bounding_boxes(bounding_boxes: list[BoundingBox]) -> BoundingBox:
+def merge_bounding_boxes(bounding_boxes: Iterable[BoundingBox]) -> BoundingBox:
     total_bbox: BoundingBox | None = None
 
     for bbox in bounding_boxes:

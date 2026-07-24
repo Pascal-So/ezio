@@ -97,7 +97,6 @@ class SegmentInfo(BaseModel):
     dist_km: float
     climb_m: float | None
     featured_photo: str | None
-    bounding_box: BoundingBox
     nr_photos: int | None = Field(default=None)
 
 
@@ -105,7 +104,6 @@ class Data(BaseModel):
     segments: list[SegmentInfo]
     photos: list[PhotoInfo]
     background_segments: list[str]
-    total_bounding_box: BoundingBox
     max_zoom_level: int
 
 
@@ -129,8 +127,8 @@ class OutputDirectory(Path):
         return self / "img" / "plots"
 
     @property
-    def tracks_dir(self) -> Path:
-        return self / "tracks"
+    def segments_path(self) -> Path:
+        return self / "segments.geojson"
 
     @property
     def background_segments_dir(self) -> Path:
@@ -148,7 +146,6 @@ class OutputDirectory(Path):
         self.thumbs_dir.mkdir(parents=True, exist_ok=True)
         self.tiles_dir.mkdir(parents=True, exist_ok=True)
         self.plots_dir.mkdir(parents=True, exist_ok=True)
-        self.tracks_dir.mkdir(parents=True, exist_ok=True)
         self.background_segments_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -192,7 +189,6 @@ def load_existing_data(json_path: Path) -> ExistingData:
                 dist_km=old_segment.dist,
                 climb_m=old_segment.climb,
                 featured_photo=old_segment.feat,
-                bounding_box=BoundingBox(min_lat=0, max_lat=0, min_lng=0, max_lng=0),
                 nr_photos=None,
             )
 

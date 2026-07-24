@@ -6,9 +6,9 @@ import {
   useRef,
   useEffect,
 } from "react";
-import type { FeatureCollection, MultiLineString, Point } from "geojson";
+import type { FeatureCollection, Point } from "geojson";
 
-import type { BoundingBox, PhotoInfo, Segment } from "./types";
+import type { BackgroundSegmentGeometry, BoundingBox, PhotoInfo, Segment } from "./types";
 import InfoOverlay from "./components/info-overlay";
 import MapView, { type PannableMap } from "./components/map";
 import PhotoGallery from "./components/photo-gallery";
@@ -16,7 +16,7 @@ import PhotoGallery from "./components/photo-gallery";
 type AppProps = {
   segments: Segment[];
   photos: PhotoInfo[];
-  backgroundSegments: FeatureCollection<MultiLineString>[];
+  backgroundSegments: BackgroundSegmentGeometry[];
   stays: FeatureCollection<Point> | null;
   totalBoundingBox: BoundingBox;
   maxZoomLevel: number;
