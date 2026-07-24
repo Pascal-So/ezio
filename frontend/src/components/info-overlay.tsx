@@ -1,10 +1,12 @@
 import { thumbnailPath } from "../data-fetching";
-import type { SegmentInfo } from "../types";
+import type { SegmentGeometry, SegmentInfo } from "../types";
 import RulerIcon from "../assets/ruler.svg";
 import MountainsIcon from "../assets/mountains.svg";
+import AltitudeChart from "./altitude-chart";
 
 type InfoOverlayProps = {
   segment: SegmentInfo;
+  geometry: SegmentGeometry;
   moveToNextSegment: (() => void) | undefined;
   moveToPrevSegment: (() => void) | undefined;
   openPhotoGallery: () => void;
@@ -12,6 +14,7 @@ type InfoOverlayProps = {
 
 function InfoOverlay({
   segment,
+  geometry,
   moveToNextSegment,
   moveToPrevSegment,
   openPhotoGallery,
@@ -59,13 +62,7 @@ function InfoOverlay({
         </div>
       </div>
 
-      {segment.climb !== undefined && (
-        <img
-          title="Elevation"
-          alt="Plot of the elevation over the course of the day"
-          src={`img/plots/${segment.date}.svg`}
-        />
-      )}
+      {segment.climb !== undefined && <AltitudeChart geometry={geometry} />}
     </div>
   );
 }
