@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.0 - UNRELEASED
+
+* Store tracks as one combined geojson rather than one file per segment
+
 ## v0.2.0 - 2026-07-22
 
 * Plot elevation

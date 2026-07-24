@@ -14,9 +14,11 @@ from ezio.domain.geo import (
     climb,
     compute_required_map_tiles,
     merge_bounding_boxes,
+    simplify_track,
     track_length_km,
 )
 from ezio.domain.model import (
+    BoundingBox,
     Data,
     OutputDirectory,
     PhotoInfo,
@@ -33,37 +35,22 @@ from ezio.ports.tracksource import TrackLoader
 logger = logging.getLogger(__name__)
 
 
-def run_wizard(
-    source_directories: list[Path],
-    output_directory: OutputDirectory,
-    track_loaders: Collection[TrackLoader],
-    tile_source: Tilesource,
-    progress: Progress,
-    segment_info_source: SegmentInfoSource,
-    start_date: dt.date | None,
-    end_date: dt.date | None,
-    title: str | None,
-) -> None:
-    """
-    The wizard guides the user through the steps to generate the static website
-    """
+@dataclass
+class Statistics:
+    segments: dict[dt.date, SegmentInfo]
+    total_distance_km: float
+    bounding_boxes: dict[dt.date, BoundingBox]
+    total_bounding_box: BoundingBox
 
-    inputs = load_input_files(
-        source_directories, track_loaders, progress, start_date, end_date
-    )
-    if len(inputs.tracks) == 0:
-        raise Exception(
-            f"No tracks were found in the input directory {source_directories}"
-        )
-    sort_photos(inputs.photos)
 
-    segments: list[SegmentInfo] = []
-
-    tracks_by_date = group_tracks_by_date(inputs.tracks)
-
+def compute_statistics(
+    tracks_by_date: dict[dt.date, list[Track]],
+) -> Statistics:
+    segments: dict[dt.date, SegmentInfo] = {}
     total_distance_km: float = 0
 
-    # compute stats for tracks
+    bounding_boxes: dict[dt.date, BoundingBox] = {}
+
     for date, tracks in tracks_by_date.items():
         distance_km: float = 0
         climb_m: float | None = 0
@@ -84,22 +71,58 @@ def run_wizard(
 
         bbox = merge_bounding_boxes([bounding_box(track) for track in tracks])
 
-        segments.append(
-            SegmentInfo(
-                date=date,
-                description="",
-                dist_km=distance_km,
-                climb_m=climb_m,
-                featured_photo=None,
-                bounding_box=bbox,
-            )
+        segments[date] = SegmentInfo(
+            date=date,
+            description="",
+            dist_km=distance_km,
+            climb_m=climb_m,
+            featured_photo=None,
         )
+        bounding_boxes[date] = bbox
+
+    total_bbox = merge_bounding_boxes(bounding_boxes.values())
+    return Statistics(segments, total_distance_km, bounding_boxes, total_bbox)
+
+
+def run_wizard(
+    source_directories: list[Path],
+    output_directory: OutputDirectory,
+    track_loaders: Collection[TrackLoader],
+    tile_source: Tilesource,
+    progress: Progress,
+    segment_info_source: SegmentInfoSource,
+    start_date: dt.date | None,
+    end_date: dt.date | None,
+    title: str | None,
+) -> None:
+    """
+    The wizard guides the user through the steps to generate the static website
+    """
 
     output_directory.create_directory_structure()
 
-    write_geojson_files(output_directory, tracks_by_date)
+    inputs = load_input_files(
+        source_directories, track_loaders, progress, start_date, end_date
+    )
+    if len(inputs.tracks) == 0:
+        raise Exception(
+            f"No tracks were found in the input directory {source_directories}"
+        )
+    sort_photos(inputs.photos)
 
-    total_bounding_box = merge_bounding_boxes([seg.bounding_box for seg in segments])
+    tracks_by_date = group_tracks_by_date(inputs.tracks)
+    statistics = compute_statistics(tracks_by_date)
+    anonymized_tracks: dict[dt.date, list[Track]] = {
+        date: [simplify_track(track) for track in tracks]
+        for date, tracks in tracks_by_date.items()
+    }
+
+    write_geojson_files(
+        output_directory,
+        anonymized_tracks,
+        statistics.bounding_boxes,
+        statistics.total_bounding_box,
+    )
 
     photos: list[PhotoInfo] = []
 
@@ -111,6 +134,7 @@ def run_wizard(
         photos.append(photo_info)
 
     background_segments: list[str] = []
+    segments: list[SegmentInfo] = list(statistics.segments.values())
 
     if output_directory.json_path.is_file():
         logger.info(
@@ -133,12 +157,14 @@ def run_wizard(
         segments=segments,
         photos=photos,
         background_segments=background_segments,
-        total_bounding_box=total_bounding_box,
+        total_bounding_box=statistics.total_bounding_box,
         max_zoom_level=max_zoom_level,
     )
 
     # download map tiles
-    tile_coords = compute_required_map_tiles(total_bounding_box, max_zoom_level)
+    tile_coords = compute_required_map_tiles(
+        statistics.total_bounding_box, max_zoom_level
+    )
 
     try:
         download_tiles(tile_coords, tile_source, output_directory.tiles_dir, progress)
@@ -163,7 +189,7 @@ def run_wizard(
     # add the frontend to the output directory
     copy_frontend(output_directory, title)
 
-    logger.info(f"Total track distance: {total_distance_km:.2f} km")
+    logger.info(f"Total track distance: {statistics.total_distance_km:.2f} km")
 
 
 @dataclass
@@ -274,8 +300,8 @@ def download_tiles(
 
 
 def merge_existing_segments(
-    existing_segments: list[SegmentInfo],
-    new_segments: list[SegmentInfo],
+    existing_segments: Iterable[SegmentInfo],
+    new_segments: Iterable[SegmentInfo],
     photos: Collection[str],
 ) -> None:
     """
