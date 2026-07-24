@@ -23,6 +23,7 @@ makedepends=(
     sed
     findutils
 )
+optdepends=('brotli: precompress files for efficient static file serving')
 
 _geojson_version="0.3.2"
 source=(

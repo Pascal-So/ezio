@@ -4,6 +4,7 @@
 
 * Store tracks as one combined geojson rather than one file per segment
 * Store bounding box in geojson instead of data.json
+* Precompress geojson with brotli if available
 
 ## v0.2.0 - 2026-07-22
 

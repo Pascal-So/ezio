@@ -20,6 +20,7 @@ from ezio.adapters.gpx import GpxTrackLoader
 from ezio.adapters.noop_progress import NoopProgress
 from ezio.adapters.rich_progress import RichProgress
 from ezio.adapters.textual_segment_info_source import TextualSegmentInfoSource
+from ezio.domain.generator import precompress_file
 from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.plot import plot_segment
 from ezio.domain.geo import anonymize_point
@@ -99,3 +100,16 @@ def test_plot_anonymization() -> None:
 
     with open("/tmp/anon.geojson", "w") as f:
         f.write(geojson)
+
+
+def test_brotli(tempdir: Path) -> None:
+    path = tempdir / "asdf.txt"
+    with open(path, "+w") as f:
+        f.write("hello" * 100)
+
+    precompress_file(path)
+
+    compressed_path = tempdir / "asdf.txt.br"
+    assert compressed_path.exists()
+
+    assert compressed_path.stat().st_size < path.stat().st_size

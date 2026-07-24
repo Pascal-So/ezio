@@ -7,7 +7,10 @@ more abstraction than what it's worth.
 """
 
 import datetime as dt
+import logging
+import subprocess
 from collections.abc import Iterable
+from pathlib import Path
 
 from pydantic_geojson import FeatureCollectionModel, FeatureModel, MultiLineStringModel
 
@@ -16,8 +19,10 @@ from ezio.domain.model import (
     Track,
 )
 
+logger = logging.getLogger(__name__)
 
-def write_geojson_files(
+
+def write_geojson(
     output_directory: OutputDirectory,
     tracks_by_date: dict[dt.date, list[Track]],
 ) -> None:
@@ -57,6 +62,50 @@ def write_geojson_files(
 
     with open(output_directory.segments_path, "w") as f:
         f.write(geojson)
+
+
+def precompress_file(path: Path) -> None:
+    """
+    If brotli is available on this machine, compress the file so that a compressed
+    version can be served from the web server.
+    """
+
+    compressed_suffix = path.suffix + ".br"
+    compressed_path = path.with_suffix(compressed_suffix)
+
+    if compressed_path.is_file():
+        original_time = path.stat().st_ctime
+        compressed_time = compressed_path.stat().st_ctime
+
+        if original_time < compressed_time:
+            logger.debug(
+                f"Skipping compression of {path} because compressed file exists and is newer than original file ({original_time} < {compressed_time}"
+            )
+            return None
+
+    try:
+        subprocess.run(
+            [
+                "brotli",
+                "-k",  # keep source file
+                "-Z",  # use best compression level (11)
+                "-f",  # overwrite existing compressed file
+                path,
+            ],
+            shell=False,
+            check=False,
+            timeout=10.0,
+        )
+    except FileNotFoundError:
+        # ignore error if brotli is not available
+        logger.debug(f"Could not precompress {path} because brotli is not available")
+
+    except subprocess.TimeoutExpired:
+        logger.warning(f"Timeout error for brotli compression of {path}")
+
+        # Remove the generated file if it exists since we don't want
+        # half-finished files.
+        compressed_path.unlink(missing_ok=True)
 
 
 def compute_geojson_bounding_box(tracks: list[Track]) -> list[float] | None:

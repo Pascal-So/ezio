@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ezio.adapters.photo_source import load_photo  # todo: put this behind a port
-from ezio.domain.generator import write_geojson_files
+from ezio.domain.generator import precompress_file, write_geojson
 from ezio.domain.generator.frontend import copy_frontend
 from ezio.domain.generator.photos import save_photo
 from ezio.domain.generator.plot import plot_segment
@@ -108,10 +108,11 @@ def run_wizard(
         for date, tracks in tracks_by_date.items()
     }
 
-    write_geojson_files(
+    write_geojson(
         output_directory,
         anonymized_tracks,
     )
+    precompress_file(output_directory.segments_path)
 
     photos: list[PhotoInfo] = []
 
