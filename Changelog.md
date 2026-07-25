@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.0 - UNRELEASED
+## v1.0.0 - 2026-07-25
 
 * Make altitude plots interactive: hover over the plot to highlight the
   corresponding location on the map.

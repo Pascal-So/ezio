@@ -1,6 +1,7 @@
 [project]
 name = "ezio"
-version = "0.2.0" # remember to also update the version in version.py
+version = "1.0.0" # remember to also update the version in version.py
+license = "AGPL-3.0-or-later"
 description = "Display a recorded route as a static website"
 readme = "Readme.md"
 authors = [
