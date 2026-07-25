@@ -1,10 +1,15 @@
 frontend-path-in-package := "src/ezio/domain/generator/frontend/dist"
 
 check:
+    #!/usr/bin/env bash
+
     uv run pytest -s --log-cli-level warn
     uv run mypy . --strict
     uv run ruff check
-    # todo: eslint & tests
+
+    cd frontend
+    npm run test -- run
+    # todo: eslint
 
 # Run the frontend in development mode with hot reloading
 [working-directory: 'frontend']
