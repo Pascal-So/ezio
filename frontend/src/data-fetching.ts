@@ -3,6 +3,7 @@ import type {
   BackgroundSegmentGeometry,
   BoundingBox,
   Data,
+  AltitudeData,
   PhotoInfo,
   PointsGeometry,
   Segment,
@@ -55,7 +56,6 @@ export async function fetchAllData(): Promise<Data> {
     }
   }
 
-  let idx = 0;
   for (const segmentInfo of data.segments) {
     let imageIndex: number | null = null;
 
@@ -71,25 +71,25 @@ export async function fetchAllData(): Promise<Data> {
       imageIndex = firstPhotoIndexByDate.get(segmentInfo.date) ?? null;
     }
 
-    let geometry = segmentGeometryByDate.get(segmentInfo.date);
+    const geometry = segmentGeometryByDate.get(segmentInfo.date);
     if (geometry === undefined) {
       console.warn(
         `skipping segment ${segmentInfo.date} because the geojson data does not contain that feature`,
       );
       continue;
     }
-    let segment = {
+    const segment = {
       ...segmentInfo,
       boundingBox: geometry[1],
       imageIndex,
       geometry: geometry[0],
+      altitudeData: extractAltitudeData(geometry[0]),
     };
     if (imageIndex !== null) {
       segment.featuredPhotoFilename = data.photos[imageIndex].filename;
     }
 
     segments.push(segment);
-    idx += 1;
   }
 
   // Try to get the combined bounding box from the geojson, falling back to
@@ -150,7 +150,7 @@ export function photoPath(filename: string): string {
   return `img/photos/large/${filename}`;
 }
 
-export function parseData(raw: any): JsonData {
+export function parseData(raw: unknown): JsonData {
   const resSchema = z.object({ x: z.number(), y: z.number() });
   const photoInfoSchema = z.object({
     filename: z.string(),
@@ -175,7 +175,7 @@ export function parseData(raw: any): JsonData {
     segments: z.array(segmentInfoSchema),
     photos: z.array(photoInfoSchema),
     background_segments: z.optional(z.array(z.string())),
-    total_bounding_box: boundingBoxSchema,
+    total_bounding_box: z.optional(boundingBoxSchema),
     max_zoom_level: z.number(),
   });
 
@@ -199,7 +199,10 @@ export function parseData(raw: any): JsonData {
       thumbnailResolution: { ...photo.thumb_res },
     })),
     backgroundSegments: parsed.background_segments || [],
-    totalBoundingBox: convertBoundingBox(parsed.total_bounding_box),
+    totalBoundingBox:
+      parsed.total_bounding_box !== undefined
+        ? convertBoundingBox(parsed.total_bounding_box)
+        : undefined,
     maxZoomLevel: parsed.max_zoom_level,
   };
 }
@@ -264,3 +267,47 @@ type JsonData = {
   totalBoundingBox?: BoundingBox;
   maxZoomLevel: number;
 };
+
+/** Get the elevation data from the geojson data and downsample it */
+function extractAltitudeData(geometry: SegmentGeometry): AltitudeData | null {
+  const nrPoints = geometry.coordinates.reduce(
+    (sum, track) => sum + track.length,
+    0,
+  );
+  const desiredNrPoints = 125;
+  const downsamplingFactor = Math.max(nrPoints / desiredNrPoints, 1);
+
+  const downsampledAltitudes: { alt: number }[] = [];
+  let minAlt = Infinity;
+  let maxAlt = -Infinity;
+
+  let lastPush = -downsamplingFactor;
+  let i = 0;
+  for (const track of geometry.coordinates) {
+    for (const pos of track) {
+      if (pos.length < 3 || pos[2] === null) {
+        // the track does not have elevation data
+        return null;
+      }
+      const alt = pos[2];
+
+      minAlt = Math.min(alt, minAlt);
+      maxAlt = Math.max(alt, maxAlt);
+
+      if (i > lastPush + downsamplingFactor) {
+        lastPush += downsamplingFactor;
+
+        downsampledAltitudes.push({ alt });
+      }
+
+      i += 1;
+    }
+  }
+
+  return {
+    altitudes: downsampledAltitudes,
+    originalLength: nrPoints,
+    minAlt,
+    maxAlt,
+  };
+}

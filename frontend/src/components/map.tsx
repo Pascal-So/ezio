@@ -7,6 +7,7 @@ import {
   GeoJSON,
   useMap,
   LayerGroup,
+  CircleMarker,
 } from "react-leaflet";
 
 import type { BackgroundSegmentGeometry, BoundingBox, Segment } from "../types";
@@ -21,6 +22,7 @@ type MapViewProps = {
   backgroundSegments: BackgroundSegmentGeometry[];
   stays: FeatureCollection<Point> | null;
   maxZoom: number;
+  hoveredCoordinateIndex: number | null;
   ref: Ref<PannableMap>;
 };
 
@@ -66,6 +68,7 @@ function MapContents({
   backgroundSegments,
   stays,
   maxZoom,
+  hoveredCoordinateIndex,
   ref,
 }: MapViewProps) {
   const map = useMap();
@@ -73,7 +76,7 @@ function MapContents({
   useEffect(() => {
     // deselect segments when clicking on the background
     map.on("click", () => setSelectedSegment(null));
-  }, [map]);
+  }, [map, setSelectedSegment]);
 
   useImperativeHandle(ref, () => {
     return {
@@ -89,7 +92,22 @@ function MapContents({
         });
       },
     };
-  }, [segments, map]);
+  }, [segments, map, maxZoom]);
+
+  let highlightedCoordinate: [number, number] | null = null;
+  if (hoveredCoordinateIndex !== null && selectedSegment !== null) {
+    let index = hoveredCoordinateIndex;
+    for (const track of segments[selectedSegment].geometry.coordinates) {
+      if (index >= track.length) {
+        index -= track.length;
+        continue;
+      }
+
+      const geojsonCoord = track[index];
+      highlightedCoordinate = [geojsonCoord[1], geojsonCoord[0]];
+      break;
+    }
+  }
 
   return (
     <>
@@ -147,6 +165,15 @@ function MapContents({
           index={selectedSegment}
           isSelected={true}
           select={() => {}}
+        />
+      )}
+
+      {highlightedCoordinate && (
+        <CircleMarker
+          center={highlightedCoordinate}
+          pathOptions={{ color: "#ccc", opacity: 0.8 }}
+          weight={2}
+          radius={7}
         />
       )}
     </>

@@ -14,7 +14,6 @@ depends=(
     python-rich
     python-pydantic
     python-textual
-    python-matplotlib
 )
 makedepends=(
     python-build

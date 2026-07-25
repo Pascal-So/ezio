@@ -16,6 +16,20 @@ export type Segment = SegmentInfo & {
   imageIndex: number | null;
   geometry: SegmentGeometry;
   boundingBox: BoundingBox;
+  altitudeData: AltitudeData | null;
+};
+
+export type AltitudeData = {
+  altitudes: { alt: number }[];
+
+  minAlt: number;
+  maxAlt: number;
+
+  /** The altitudes list is shorter than the actual list of coordinates,
+   *  therefore we store the length of the full list so that we can
+   *  convert indices back.
+   */
+  originalLength: number;
 };
 
 export type SegmentInfo = {

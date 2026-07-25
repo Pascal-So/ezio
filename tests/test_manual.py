@@ -12,20 +12,16 @@ import random
 import time
 from pathlib import Path
 
-from pydantic_geojson import FeatureCollectionModel, FeatureModel
 import pytest
+from pydantic_geojson import FeatureCollectionModel, FeatureModel
 from rich.pretty import pprint
 
-from ezio.adapters.gpx import GpxTrackLoader
-from ezio.adapters.noop_progress import NoopProgress
 from ezio.adapters.rich_progress import RichProgress
 from ezio.adapters.textual_segment_info_source import TextualSegmentInfoSource
 from ezio.domain.generator import precompress_file
 from ezio.domain.generator.frontend import copy_frontend
-from ezio.domain.generator.plot import plot_segment
 from ezio.domain.geo import anonymize_point
 from ezio.domain.model import Coord, OutputDirectory, Track
-from ezio.domain.wizard import group_tracks_by_date, load_input_files
 
 from .utils import make_segment
 
@@ -63,16 +59,6 @@ def test_textual_segment_info() -> None:
     source.add_descriptions(segments)
 
     pprint(segments)
-
-
-def test_plotting() -> None:
-    path = Path("./additional-test-data")
-
-    inputs = load_input_files([path], [GpxTrackLoader()], NoopProgress(), None, None)
-    tracks_by_date = group_tracks_by_date(inputs.tracks)
-
-    for date, segment in tracks_by_date.items():
-        plot_segment(segment, Path(date.strftime("%Y-%m-%d.svg")))
 
 
 def test_plot_anonymization() -> None:
