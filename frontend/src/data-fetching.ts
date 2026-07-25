@@ -150,7 +150,7 @@ export function photoPath(filename: string): string {
   return `img/photos/large/${filename}`;
 }
 
-function parseData(raw: unknown): JsonData {
+export function parseData(raw: unknown): JsonData {
   const resSchema = z.object({ x: z.number(), y: z.number() });
   const photoInfoSchema = z.object({
     filename: z.string(),
@@ -168,7 +168,7 @@ function parseData(raw: unknown): JsonData {
     date: z.string(),
     description: z.optional(z.string()),
     dist_km: z.number(),
-    climb_m: z.optional(z.number()),
+    climb_m: z.nullish(z.number()),
     featured_photo: z.nullable(z.string()),
   });
   const schema = z.object({
@@ -189,7 +189,7 @@ function parseData(raw: unknown): JsonData {
       date: seg.date,
       description: seg.description || "",
       dist: seg.dist_km,
-      climb: seg.climb_m,
+      climb: seg.climb_m ?? undefined,
       featuredPhotoFilename: seg.featured_photo || null,
     })),
     photos: parsed.photos.map((photo) => ({
