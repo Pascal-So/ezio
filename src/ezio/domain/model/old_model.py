@@ -26,4 +26,4 @@ class OldData(BaseModel):
 
     segments: list[OldSegmentInfo]
     photos: list[OldPhotoInfo]
-    background_segments: list[str] = Field(default=[])
+    background_segments: list[str] = Field(default=[], alias="backgroundSegments")

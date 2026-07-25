@@ -29,3 +29,11 @@ def test_load_data_without_climb(data_dir: Path) -> None:
     assert len(existing_data.segments) == 1
     assert existing_data.segments[0].date == dt.date(2026, 4, 21)
     assert existing_data.segments[0].description == "Segment A"
+
+
+def test_load_old_data_with_background_segments(data_dir: Path) -> None:
+    existing_data = load_existing_data(
+        data_dir / "old-data-with-background-segments.json"
+    )
+
+    assert existing_data.background_segments == ["here-there", "ferry-england"]
