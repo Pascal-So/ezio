@@ -34,8 +34,8 @@ source=(
     "https://github.com/gb-libs/pydantic-geojson/archive/refs/tags/${_geojson_version}.tar.gz"
 )
 sha256sums=(
-    "f902638fd71afc6ad2cdd0ed9f7c35003811bafd7c77acc7076c45eb0041d354"
-    "a264fc6e54d5cfb31700e5e6c295190bfcf086b77e8204eb005d5980f26c95f1"
+    "de4e2853750c48ebe38eda0d664d3f0eabe756a2b7d1cb49e08d9186846f14b6"
+    "ff2695255ac72aee648bd714d5fb5515242e0029c441035079b9141cf9f84711"
     "3957a8c532885c9843430b4ba1fe705e5a3a0f35a405eb318c4f459f7b36b61a"
 )
 
