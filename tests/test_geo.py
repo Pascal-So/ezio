@@ -132,12 +132,22 @@ def test_simplification(lancashire_track: Track) -> None:
         f.write(geojson)
 
 
+def n_meters_from_equator(distance_m: float) -> Coord:
+    """
+    Generate a coordinate a certain distance from the equator.
+
+    This assumes a spherical earth.
+    """
+
+    return Coord(lat=distance_m * 90 / 1e7, lng=0.0)
+
+
 def points_with_1m_spacing(amount: int) -> Track:
     """
     Generate a track with points that are 1 metre apart each.
     """
 
-    return Track(coords=[Coord(lat=d * 90 / 1e7, lng=0.0) for d in range(amount)])
+    return Track(coords=[n_meters_from_equator(d) for d in range(amount)])
 
 
 def test_simplify_short_track() -> None:
@@ -174,25 +184,31 @@ def test_simplification_resolution() -> None:
     assert abs(len(simplified.coords) - expected_nr_points) < 4
 
 
-# def test_resolution() -> None:
-#     loader = GpxTrackLoader()
-#     tracks = loader.load_tracks(Path(""))
+def test_simplify_lowres() -> None:
+    """
+    When simplifying a track with a resolution that is already lower than the
+    target resolution we actually end up increasing the number of points to
+    make sure we get a roughly even spacing on average.
+    """
 
-#     assert tracks is not None
-#     assert len(tracks) == 1
+    track = Track(
+        coords=[
+            n_meters_from_equator(0),
+            n_meters_from_equator(1000),
+            n_meters_from_equator(2000),
+            n_meters_from_equator(3000),
+            n_meters_from_equator(3100),
+            n_meters_from_equator(3200),
+            n_meters_from_equator(3300),
+            n_meters_from_equator(3400),
+            n_meters_from_equator(5000),
+        ]
+    )
 
-#     track = tracks[0][1]
+    endpoint_resolution_m = 350
+    resolution_m = 200
+    total_distance = earth_surface_distance_km(track.coords[0], track.coords[-1]) * 1000
+    expected_nr_points = (total_distance - endpoint_resolution_m * 2) / resolution_m
 
-#     coords = track.coords
-
-#     total_distance: float = 0.0
-#     distances = []
-#     for a, b in zip(coords, coords[1:]):
-#         segment_dist = earth_surface_distance_km(a, b)
-#         # print(segment_dist)
-#         distances.append(segment_dist)
-#         total_distance += segment_dist
-
-#     print(total_distance)
-#     # plt.hist(distances)
-#     # plt.show()
+    simplified = simplify_track(track, endpoint_resolution_m, resolution_m)
+    assert abs(len(simplified.coords) - expected_nr_points) < 2

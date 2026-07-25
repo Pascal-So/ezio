@@ -310,7 +310,9 @@ def simplify_track(
         segment_dist_m = earth_surface_distance_km(a, b) * 1000
         total_distance += segment_dist_m
 
-        if total_distance > downsampled_distance + resolution_m:
+        # if the input resolution is lower than the desired resolution, we just
+        # reinsert the same point multiple times to even it out on average
+        while total_distance > downsampled_distance + resolution_m:
             simplified.append(b)
             # todo: take average elevation over the skipped range
 

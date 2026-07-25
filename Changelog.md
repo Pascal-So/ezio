@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.1 - UNRELEASED
+
+* Improve even point spacing in downsampled tracks. This improves the altitude
+  plot for track recordings that were already at a low or irregular resolution.
+
 ## v1.0.0 - 2026-07-25
 
 * Make altitude plots interactive: hover over the plot to highlight the
