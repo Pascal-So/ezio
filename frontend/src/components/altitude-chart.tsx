@@ -1,14 +1,40 @@
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type TouchEvent,
+  type MouseEvent,
+  useMemo,
+} from "react";
 import type { SegmentGeometry } from "../types";
-import { CartesianGrid, Line, LineChart, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  getRelativeCoordinate,
+  Line,
+  LineChart,
+  Tooltip,
+  useXAxisInverseScale,
+  YAxis,
+  type InverseScaleFunction,
+  type RelativePointer,
+} from "recharts";
+import { throttle } from "es-toolkit";
 
 type AltitudeChartProps = {
   geometry: SegmentGeometry;
+  setHoveredCoordinateIndex: (index: number | null) => void;
 };
 
-function AltitudeChart({ geometry }: AltitudeChartProps) {
-  const alt = geometry.coordinates
-    .flatMap((track) => track.map((pos) => ({ alt: pos[2] })))
-    .map((obj, idx) => ({ x: idx, ...obj }));
+function AltitudeChart({
+  geometry,
+  setHoveredCoordinateIndex,
+}: AltitudeChartProps) {
+  const [xAxisInverseScale, setXAxisInverseScale] =
+    useState<InverseScaleFunction | null>(null);
+
+  const alt = geometry.coordinates.flatMap((track) =>
+    track.map((pos) => ({ alt: pos[2] })),
+  );
 
   const minAlt = alt.reduce(
     (acc, { alt: current }) => Math.min(acc, current),
@@ -45,8 +71,52 @@ function AltitudeChart({ geometry }: AltitudeChartProps) {
     horizontalValues.push(i);
   }
 
+  const updateHover = useMemo(
+    () =>
+      throttle(
+        (relativeX: number | null) => {
+          if (relativeX === null) {
+            setHoveredCoordinateIndex(null);
+            return;
+          }
+
+          if (xAxisInverseScale !== null) {
+            const xIndex = xAxisInverseScale(relativeX) as number;
+            setHoveredCoordinateIndex(xIndex);
+          }
+        },
+        50,
+        { edges: ["trailing"] },
+      ),
+    [xAxisInverseScale, setHoveredCoordinateIndex],
+  );
+  const handleTouchMove = useCallback(
+    (_data: unknown, event: TouchEvent<SVGGraphicsElement>) => {
+      const chartPointers: RelativePointer[] = getRelativeCoordinate(event);
+      if (chartPointers.length > 0) {
+        updateHover(chartPointers[0].relativeX);
+      }
+    },
+    [updateHover],
+  );
+  const handleMouseMove = useCallback(
+    (_data: unknown, event: MouseEvent<SVGGraphicsElement>) => {
+      updateHover(getRelativeCoordinate(event).relativeX);
+    },
+    [updateHover],
+  );
+
   return (
-    <LineChart data={alt} style={{ width: "250px", height: "110px" }}>
+    <LineChart
+      data={alt}
+      style={{ width: "250px", height: "110px" }}
+      onTouchMove={handleTouchMove}
+      onMouseMove={handleMouseMove}
+      onTouchEnd={() => updateHover(null)}
+      onMouseLeave={() => updateHover(null)}
+    >
+      <GetXAxisInverseScale setXAxisInverseScale={setXAxisInverseScale} />
+
       <YAxis
         axisLine={false}
         tickLine={false}
@@ -65,7 +135,7 @@ function AltitudeChart({ geometry }: AltitudeChartProps) {
             <text
               x={toFloat(props.x) - 5}
               y={toFloat(props.y) - 2}
-              text-anchor="end"
+              textAnchor="end"
               fill="#abb"
               fontSize={15}
             >
@@ -84,8 +154,50 @@ function AltitudeChart({ geometry }: AltitudeChartProps) {
         stroke="#9aa"
         strokeWidth={2}
       />
+      <Tooltip
+        animationDuration={200}
+        content={({ payload }) => {
+          if (payload.length === 0) {
+            return null;
+          }
+
+          const alt = payload[0].payload.alt;
+          return (
+            <span
+              style={{
+                color: "#677",
+                padding: "0.5px",
+                backgroundColor: "#fff8",
+                borderRadius: "2px",
+              }}
+            >
+              {alt.toFixed(0)}m
+            </span>
+          );
+        }}
+      />
     </LineChart>
   );
+}
+
+type GetXAxisInverseScaleProps = {
+  setXAxisInverseScale: (scale: InverseScaleFunction | null) => void;
+};
+// HACK: this component just extracts the function to map relative coordinates
+// to data coordinates. The mapping is only available inside LineChart, but we
+// need to transport it to the outside so that we can use it in the touch and
+// mouse callbacks on LineChart.
+function GetXAxisInverseScale({
+  setXAxisInverseScale,
+}: GetXAxisInverseScaleProps) {
+  const xAxisInverseScale = useXAxisInverseScale();
+  const hasScale = xAxisInverseScale !== undefined;
+
+  useEffect(() => {
+    setXAxisInverseScale(() => xAxisInverseScale ?? null);
+  }, [setXAxisInverseScale, hasScale]);
+
+  return <></>;
 }
 
 export default AltitudeChart;

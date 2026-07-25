@@ -8,7 +8,12 @@ import {
 } from "react";
 import type { FeatureCollection, Point } from "geojson";
 
-import type { BackgroundSegmentGeometry, BoundingBox, PhotoInfo, Segment } from "./types";
+import type {
+  BackgroundSegmentGeometry,
+  BoundingBox,
+  PhotoInfo,
+  Segment,
+} from "./types";
 import InfoOverlay from "./components/info-overlay";
 import MapView, { type PannableMap } from "./components/map";
 import PhotoGallery from "./components/photo-gallery";
@@ -32,6 +37,9 @@ const App: FC<AppProps> = ({
 }: AppProps) => {
   const [selectedSegment, setSelectedSegment] = useState<number | null>(0);
   const [imageIndex, setImageIndex] = useState<number | null>(null);
+  const [hoveredCoordinateIndex, setHoveredCoordinateIndex] = useState<
+    number | null
+  >(null);
   const mapRef = useRef<PannableMap>(null);
 
   const move = useCallback(
@@ -49,7 +57,7 @@ const App: FC<AppProps> = ({
         }
       });
     },
-    [setSelectedSegment],
+    [setSelectedSegment, segments.length],
   );
 
   const keyDown = useCallback(
@@ -95,6 +103,7 @@ const App: FC<AppProps> = ({
           moveToNextSegment={
             selectedSegment + 1 < segments.length ? move(1) : undefined
           }
+          setHoveredCoordinateIndex={setHoveredCoordinateIndex}
         />
       ) : null}
 
@@ -113,6 +122,7 @@ const App: FC<AppProps> = ({
         stays={stays}
         totalBoundingBox={totalBoundingBox}
         maxZoom={maxZoomLevel}
+        hoveredCoordinateIndex={hoveredCoordinateIndex}
         ref={mapRef}
       />
     </div>

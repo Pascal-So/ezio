@@ -10,6 +10,7 @@ type InfoOverlayProps = {
   moveToNextSegment: (() => void) | undefined;
   moveToPrevSegment: (() => void) | undefined;
   openPhotoGallery: () => void;
+  setHoveredCoordinateIndex: (index: number | null) => void;
 };
 
 function InfoOverlay({
@@ -18,6 +19,7 @@ function InfoOverlay({
   moveToNextSegment,
   moveToPrevSegment,
   openPhotoGallery,
+  setHoveredCoordinateIndex,
 }: InfoOverlayProps) {
   return (
     <div className="shadow-lg flex flex-col max-w-[250px] bg-slate-100 rounded-lg absolute z-[1000] bottom-3 left-3 overflow-hidden">
@@ -62,7 +64,12 @@ function InfoOverlay({
         </div>
       </div>
 
-      {segment.climb !== undefined && <AltitudeChart geometry={geometry} />}
+      {segment.climb !== undefined && (
+        <AltitudeChart
+          geometry={geometry}
+          setHoveredCoordinateIndex={setHoveredCoordinateIndex}
+        />
+      )}
     </div>
   );
 }
