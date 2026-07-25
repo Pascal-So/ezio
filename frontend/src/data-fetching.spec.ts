@@ -65,4 +65,11 @@ describe("parseData", () => {
     delete data.segments[0].climb_m;
     expect(parseData(data).segments[0].climb).toBeUndefined();
   });
+
+  test("ignores unknown fields", () => {
+    const data = getData();
+    data['asdf'] = 2;
+    const parsed = parseData(data);
+    expect(parsed.maxZoomLevel).toBe(10)
+  });
 });

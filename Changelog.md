@@ -10,6 +10,7 @@
 * Store bounding box in geojson instead of data.json
 * Precompress geojson with brotli if available
 * Bugfixes for tracks without elevation data
+* Add version field to data.json. For now the version is set to 1
 
 ## v0.2.0 - 2026-07-22
 

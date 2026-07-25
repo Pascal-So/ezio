@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from pydantic import BaseModel, Field
 from pydantic_geojson import LineStringModel
 
 from ezio.domain.model.old_model import OldData, OldSegmentInfo
+
+logger = logging.getLogger(__name__)
 
 Tile = bytes
 
@@ -100,7 +103,11 @@ class SegmentInfo(BaseModel):
     nr_photos: int | None = Field(default=None)
 
 
+CURRENT_DATA_FORMAT_VERSION: int = 1
+
+
 class Data(BaseModel):
+    version: int = CURRENT_DATA_FORMAT_VERSION
     segments: list[SegmentInfo]
     photos: list[PhotoInfo]
     background_segments: list[str]
@@ -162,11 +169,18 @@ def load_existing_data(json_path: Path) -> ExistingData:
     try:
         existing_data = Data.model_validate_json(json)
 
+        data_version = existing_data.version
+
+        if data_version != CURRENT_DATA_FORMAT_VERSION:
+            logger.warning(
+                f"loaded existing data.json with version {data_version}, expected version {CURRENT_DATA_FORMAT_VERSION}"
+            )
+
         return ExistingData(
             background_segments=existing_data.background_segments,
             segments=existing_data.segments,
         )
-    except Exception as e:
+    except Exception as e:  # TODO: catch a more narrow exception type
         # Format doesn't match, let's try the old format
 
         try:
