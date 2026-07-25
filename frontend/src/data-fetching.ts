@@ -175,7 +175,7 @@ function parseData(raw: any): JsonData {
     segments: z.array(segmentInfoSchema),
     photos: z.array(photoInfoSchema),
     background_segments: z.optional(z.array(z.string())),
-    total_bounding_box: boundingBoxSchema,
+    total_bounding_box: z.optional(boundingBoxSchema),
     max_zoom_level: z.number(),
   });
 
@@ -199,7 +199,10 @@ function parseData(raw: any): JsonData {
       thumbnailResolution: { ...photo.thumb_res },
     })),
     backgroundSegments: parsed.background_segments || [],
-    totalBoundingBox: convertBoundingBox(parsed.total_bounding_box),
+    totalBoundingBox:
+      parsed.total_bounding_box !== undefined
+        ? convertBoundingBox(parsed.total_bounding_box)
+        : undefined,
     maxZoomLevel: parsed.max_zoom_level,
   };
 }
