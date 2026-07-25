@@ -6,7 +6,7 @@ import {
   type MouseEvent,
   useMemo,
 } from "react";
-import type { SegmentGeometry } from "../types";
+import type { AltitudeData } from "../types";
 import {
   CartesianGrid,
   getRelativeCoordinate,
@@ -21,36 +21,22 @@ import {
 import { throttle } from "es-toolkit";
 
 type AltitudeChartProps = {
-  geometry: SegmentGeometry;
+  altitudeData: AltitudeData;
   setHoveredCoordinateIndex: (index: number | null) => void;
 };
 
 function AltitudeChart({
-  geometry,
+  altitudeData,
   setHoveredCoordinateIndex,
 }: AltitudeChartProps) {
   const [xAxisInverseScale, setXAxisInverseScale] =
     useState<InverseScaleFunction | null>(null);
 
-  const alt = useMemo(
-    () =>
-      geometry.coordinates.flatMap((track) =>
-        track.map((pos) => ({ alt: pos[2] })),
-      ),
-    [geometry],
-  );
-
-  const minAlt = alt.reduce(
-    (acc, { alt: current }) => Math.min(acc, current),
-    Infinity,
-  );
-  const maxAlt = alt.reduce(
-    (acc, { alt: current }) => Math.max(acc, current),
-    -Infinity,
-  );
-
   let tickSpacing = 100;
   const minRange = 215;
+
+  const minAlt = altitudeData.minAlt;
+  const maxAlt = altitudeData.maxAlt;
 
   if (maxAlt - minAlt > 600) {
     tickSpacing = 200;
@@ -85,14 +71,24 @@ function AltitudeChart({
           }
 
           if (xAxisInverseScale !== null) {
-            const xIndex = xAxisInverseScale(relativeX) as number;
-            setHoveredCoordinateIndex(xIndex);
+            const downsampledXIndex = xAxisInverseScale(relativeX) as number;
+
+            // convert back to the index in the non-downsampled data
+            const originalXIndex = Math.min(
+              Math.floor(
+                (altitudeData.originalLength / altitudeData.altitudes.length) *
+                  downsampledXIndex,
+              ),
+              altitudeData.originalLength - 1,
+            );
+
+            setHoveredCoordinateIndex(originalXIndex);
           }
         },
         50,
         { edges: ["trailing"] },
       ),
-    [xAxisInverseScale, setHoveredCoordinateIndex],
+    [xAxisInverseScale, setHoveredCoordinateIndex, altitudeData],
   );
   const handleTouchMove = useCallback(
     (_data: unknown, event: TouchEvent<SVGGraphicsElement>) => {
@@ -112,7 +108,7 @@ function AltitudeChart({
 
   return (
     <LineChart
-      data={alt}
+      data={altitudeData.altitudes}
       style={{ width: "250px", height: "110px" }}
       onTouchMove={handleTouchMove}
       onMouseMove={handleMouseMove}
