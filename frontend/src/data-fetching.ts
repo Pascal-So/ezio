@@ -285,7 +285,7 @@ function extractAltitudeData(geometry: SegmentGeometry): AltitudeData | null {
   let i = 0;
   for (const track of geometry.coordinates) {
     for (const pos of track) {
-      if (pos.length < 3) {
+      if (pos.length < 3 || pos[2] === null) {
         // the track does not have elevation data
         return null;
       }
