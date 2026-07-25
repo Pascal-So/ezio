@@ -15,7 +15,7 @@ class OldSegmentInfo(BaseModel):
     date: dt.date
     desc: str
     dist: float
-    climb: float | None
+    climb: float | None = None
     feat: str
 
 

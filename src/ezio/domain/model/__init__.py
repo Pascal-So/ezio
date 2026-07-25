@@ -95,7 +95,7 @@ class SegmentInfo(BaseModel):
     date: dt.date
     description: str
     dist_km: float
-    climb_m: float | None
+    climb_m: float | None = None
     featured_photo: str | None
     nr_photos: int | None = Field(default=None)
 

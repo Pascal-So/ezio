@@ -1,0 +1,27 @@
+{
+  "segments": [
+    {
+      "date": "2026-04-21",
+      "description": "Segment A",
+      "dist_km": 100,
+      "featured_photo": null,
+      "nr_photos": 6
+    }
+  ],
+  "photos": [
+    {
+      "filename": "photo.webp",
+      "date": "2026-04-21",
+      "res": {
+        "x": 1920,
+        "y": 1282
+      },
+      "thumb_res": {
+        "x": 250,
+        "y": 167
+      }
+    }
+  ],
+  "background_segments": [],
+  "max_zoom_level": 10
+}
