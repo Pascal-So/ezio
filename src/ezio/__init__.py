@@ -14,6 +14,7 @@ from ezio.adapters.rich_progress import RichProgress
 from ezio.adapters.textual_segment_info_source import TextualSegmentInfoSource
 from ezio.domain.model import OutputDirectory
 from ezio.domain.wizard import run_wizard
+from ezio.version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class Args:
 
 def _parse_args() -> Args:
     parser = argparse.ArgumentParser(
-        prog="Ezio",
+        prog="ezio",
         formatter_class=argparse.RawDescriptionHelpFormatter,  # allow for newlines in description
         description=textwrap.dedent("""\
             Display a recorded route as a static website.
@@ -121,6 +122,9 @@ def _parse_args() -> Args:
         "--verbose",
         action="store_true",
         help="Show more detailed logs",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
     args = parser.parse_args()
