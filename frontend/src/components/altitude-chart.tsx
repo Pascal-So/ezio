@@ -32,8 +32,12 @@ function AltitudeChart({
   const [xAxisInverseScale, setXAxisInverseScale] =
     useState<InverseScaleFunction | null>(null);
 
-  const alt = geometry.coordinates.flatMap((track) =>
-    track.map((pos) => ({ alt: pos[2] })),
+  const alt = useMemo(
+    () =>
+      geometry.coordinates.flatMap((track) =>
+        track.map((pos) => ({ alt: pos[2] })),
+      ),
+    [geometry],
   );
 
   const minAlt = alt.reduce(

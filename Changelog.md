@@ -2,6 +2,10 @@
 
 ## v1.0.0 - UNRELEASED
 
+* Make altitude plots interactive: hover over the plot to highlight the
+  corresponding location on the map.
+* Altitude plots are now rendered live in the frontend instead of rendering to
+  SVGs in the backend.
 * Store tracks as one combined geojson rather than one file per segment
 * Store bounding box in geojson instead of data.json
 * Precompress geojson with brotli if available
